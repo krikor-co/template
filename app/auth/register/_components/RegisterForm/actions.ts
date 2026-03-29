@@ -54,6 +54,7 @@ export async function registerAction(
     maxAge:   60 * 15,
     path:     '/',
   })
+  cookieStore.delete('auth_is_new')
 
   redirect(route.exits.verify({ returnTo }))
 }

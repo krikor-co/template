@@ -63,6 +63,7 @@ export async function verifyOtpAction(
     path:     '/',
   })
   cookieStore.delete('auth_email')
+  cookieStore.delete('auth_is_new')
 
   const returnTo = formData.get('returnTo')
   return { success: true, redirectTo: typeof returnTo === 'string' && returnTo ? returnTo : '/dashboard' }

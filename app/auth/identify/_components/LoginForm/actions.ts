@@ -26,7 +26,19 @@ export async function sendLoginOtp(
   const { email, returnTo } = parsed.data
 
   const existing = await db.select().from(persons).where(eq(persons.email, email)).limit(1)
-  if (existing.length === 0) redirect(route.exits.register({ email, returnTo }))
+  if (existing.length === 0) {
+    const cookieStore = await cookies()
+    const cookieOpts = {
+      httpOnly: false,
+      secure:   process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge:   60 * 15,
+      path:     '/',
+    }
+    cookieStore.set('auth_email',  email, cookieOpts)
+    cookieStore.set('auth_is_new', '1',   cookieOpts)
+    redirect(route.exits.register({ returnTo }))
+  }
 
   const { code } = await createEmailOtp(email)
 

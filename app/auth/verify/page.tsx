@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { route } from './contract'
+import { canVerify } from '@/lib/auth/guards'
 import { VerifyForm } from './_components/VerifyForm/VerifyForm'
 
 type Props = {
@@ -10,11 +10,13 @@ type Props = {
 
 export default async function VerifyPage({ searchParams }: Props) {
   const sp = await searchParams
-  const cookieStore = await cookies()
-  const email = cookieStore.get('auth_email')?.value
   const returnTo = typeof sp.returnTo === 'string' ? sp.returnTo : undefined
 
-  if (!email) redirect(route.exits.back({}))
+  const to = await canVerify({ returnTo })
+  if (to) redirect(to)
+
+  const cookieStore = await cookies()
+  const email = cookieStore.get('auth_email')?.value as string
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">

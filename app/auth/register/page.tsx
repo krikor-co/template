@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { route } from './contract'
+import { cookies } from 'next/headers'
+import { canRegister } from '@/lib/auth/guards'
 import { RegisterForm } from './_components/RegisterForm/RegisterForm'
 
 type Props = {
@@ -9,10 +10,12 @@ type Props = {
 
 export default async function RegisterPage({ searchParams }: Props) {
   const sp       = await searchParams
-  const email    = typeof sp.email    === 'string' ? sp.email    : undefined
   const returnTo = typeof sp.returnTo === 'string' ? sp.returnTo : undefined
 
-  if (!email) redirect(route.exits.back({}))
+  const to = await canRegister({ returnTo })
+  if (to) redirect(to)
+  const cookieStore = await cookies()
+  const email       = cookieStore.get('auth_email')?.value as string
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
