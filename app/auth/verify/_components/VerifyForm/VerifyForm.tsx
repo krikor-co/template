@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { scene } from './scene'
 import { verifyOtpAction } from './actions'
 import type { State } from './state'
+import { useEffect } from 'react'
 
 export function VerifyForm({ initialState }: { initialState: State }) {
   const [state, send] = scene.useScene(initialState)
@@ -13,12 +14,20 @@ export function VerifyForm({ initialState }: { initialState: State }) {
     send({ type: 'SUBMIT' })
     const result = await verifyOtpAction(formData)
     if (result.success) {
-      send({ type: 'SUCCESS' })
-      router.push(result.redirectTo)
+      send({ type: 'SUCCESS', redirectTo: result.redirectTo })
     } else {
       send({ type: 'ERROR', message: result.error })
     }
   }
+
+  useEffect(() => {
+    if (state.status === 'success') {
+      console.log('redirecting to', state.redirectTo, 'in 2 seconds')
+      setTimeout(() => {
+        router.push(state.redirectTo)
+      }, 2000)
+    }
+  }, [state, router])
 
   switch (state.status) {
     case 'idle':
