@@ -7,6 +7,7 @@ import { persons, users, sessions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { verifyEmailOtp } from '@/lib/otp/email-otp'
 import { createSessionToken } from '@/lib/auth/jwt'
+import { AUTH_TRANSITION_COOKIES } from '@/lib/auth/guards'
 
 const schema = z.object({
   email: z.string().email(),
@@ -62,8 +63,14 @@ export async function verifyOtpAction(
     maxAge:   60 * 60 * 24 * 30,
     path:     '/',
   })
-  cookieStore.delete('auth_email')
   cookieStore.delete('auth_is_new')
+  cookieStore.set(AUTH_TRANSITION_COOKIES.verify, '1', {
+    httpOnly: false,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge:   2,
+    path:     '/',
+  })
 
   const returnTo = formData.get('returnTo')
   return { success: true, redirectTo: typeof returnTo === 'string' && returnTo ? returnTo : '/dashboard' }

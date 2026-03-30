@@ -116,7 +116,7 @@ page.tsx  ← RouteRegistry: parses URL into typed params via route.entry.parse(
     │
     ├── query.ts   ← fetches data, applies cache tags via tagWith()
     │
-    └── actions.ts ← mutates data, invalidates cache, navigates via route.exits.*()
+    └── actions.ts ← mutates data, invalidates cache, returns typed result (incl. redirectTo)
 </Shell.Card>
 ```
 
@@ -195,7 +195,7 @@ lib/
 | `fixtures.ts` | One concrete `State` example per status variant — used in Suspense fallbacks and tests |
 | `query.ts` | Server function returning `Promise<State>` — applies cache tags via `tagWith()` |
 | `tags.ts` | `createTagRegistry(...)` scoped to this domain |
-| `actions.ts` | `'use server'` — mutations that invalidate cache, and data loaders for client sections |
+| `actions.ts` | `'use server'` — mutations that invalidate cache and return typed results; data loaders for client sections. Never calls `redirect()` — returns `redirectTo` for the section to navigate |
 | `useXxxLoader.ts` | Custom hook that calls a server action loader and dispatches result to the section |
 | `ComponentName.tsx` | Renders: `switch (state.status)` only — no business logic |
 | `ComponentName.stories.tsx` | Storybook stories — one named export per `fixtures` key, passes fixture as `initialState` |
@@ -357,6 +357,7 @@ const params = route.entry.parse(ctx)
 - `entry.ts` never imports a neighbor route's `contract.ts` or `page.tsx` — only its own schema.
 - `contract.ts` imports only neighbor `entry.ts` files — never their contracts or pages.
 - One `contract.ts` per route — it is the single source of truth for that route's navigation.
+- **Actions and queries never call `redirect()`** — they return a typed result (e.g. `{ success: true; redirectTo: string }`) and the section is responsible for orchestrating the navigation. This keeps timing, animation, and sequencing decisions in the component layer where they belong.
 
 ---
 
@@ -1630,6 +1631,7 @@ export default async function NewAppointmentPage() {
 - `State` must be a discriminated union — every status is explicit and exhaustive.
 - The component renders only a `switch (state.status)` — no business logic in JSX.
 - `useState`, `useEffect`, and all React hooks live only in custom hooks — never directly in component functions.
+- **Input field values do not belong in the scene.** Controlled input values (`email`, `code`, `name`, etc.) are local UI state — use `useState` in the component. The scene tracks *what the user is doing* (idle, submitting, error, success), not *what they are typing*. If typing should clear an error, call `send({ type: 'RETRY' })` alongside the local `setState` — don't route the keystrokes through the state machine.
 
 ### Client boundary
 

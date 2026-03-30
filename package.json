@@ -11,7 +11,13 @@
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test:e2e": "node --env-file=.env.test node_modules/.bin/playwright test",
+    "test:e2e:ui": "node --env-file=.env.test node_modules/.bin/playwright test --ui",
+    "generate:route": "tsx scripts/generate/route.ts",
+    "generate:section": "tsx scripts/generate/section.ts",
+    "generate:stories": "tsx scripts/generate/stories.ts",
+    "generate:domain": "tsx scripts/generate/domain.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.0",
@@ -30,6 +36,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@storybook/nextjs": "^10.3.3",
     "@storybook/react": "^10.3.3",
     "@storybook/test": "^8.6.15",
@@ -45,6 +52,7 @@
     "postcss": "^8.4.0",
     "storybook": "^10.3.3",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.0"
   },
   "overrides": {

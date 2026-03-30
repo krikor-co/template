@@ -1,6 +1,6 @@
 import { createRoute } from '@/lib/route-registry'
 import { entry } from './entry'
-import { entry as loginEntry } from '../(auto-redirect-if-logged-in)/identify/entry'
+import { entry as loginEntry } from '../identify/entry'
 
 export const route = createRoute({
   entry,

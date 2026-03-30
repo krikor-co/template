@@ -1,7 +1,7 @@
 export type State =
-  | { status: 'idle';       email: string; returnTo?: string }
-  | { status: 'submitting'; email: string; returnTo?: string }
-  | { status: 'error';      email: string; returnTo?: string; message: string }
+  | { status: 'idle';       returnTo?: string }
+  | { status: 'submitting'; returnTo?: string }
+  | { status: 'error';      returnTo?: string; message: string }
   | { status: 'success';    redirectTo: string }
 
 export type Event =

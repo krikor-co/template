@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { VerifyForm } from './_components/VerifyForm/VerifyForm'
-import { fixtures } from './_components/VerifyForm/fixtures'
+import { RegisterForm } from './_components/RegisterForm/RegisterForm'
+import { fixtures } from './_components/RegisterForm/fixtures'
 
-const meta: Meta = { title: 'Pages/Auth/Verify' }
+const meta: Meta = { title: 'Pages/Auth/Register' }
 export default meta
 
 function Page({ fixture }: { fixture: (typeof fixtures)[keyof typeof fixtures] }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        <VerifyForm initialState={fixture} />
+        <RegisterForm initialState={fixture} />
       </div>
     </div>
   )
