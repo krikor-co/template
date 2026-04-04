@@ -1,3 +1,9 @@
+---
+title: Schema Design
+order: 11
+category: Principles
+---
+
 # Schema Design
 
 One principle drives every table definition in this codebase:
@@ -92,20 +98,37 @@ Every table follows these conventions:
 
 **Primary keys**: auto-increment integers — `integer('id').primaryKey().generatedAlwaysAsIdentity()`
 
-**Timestamps**: every table has `createdAt` and `updatedAt`
+**Timestamps**: every table has `createdAt`. Add `updatedAt` when the table's rows are mutable (edited after creation).
 
-**Soft deletes**: domain tables have `deletedAt` — records are never hard-deleted
+**Soft deletes** (opt-in): add `deletedAt` when the domain requires recoverability or audit trails. Start without it — add it when the need arises.
 
 ```typescript
-// Standard table shape
+// Minimal table — immutable or rarely updated
 export const things = pgTable('things', {
   id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
   // ... domain columns ...
   createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// With updatedAt — rows are edited after creation
+export const editableThings = pgTable('editable_things', {
+  id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  // ... domain columns ...
+  createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  deletedAt: timestamp('deleted_at'),   // omit only for pure join tables
+})
+
+// With soft deletes — domain requires recoverability
+export const recoverableThings = pgTable('recoverable_things', {
+  id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  // ... domain columns ...
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 })
 ```
+
+The template starts simple — `persons`, `users`, and `sessions` use only `createdAt`. Add `updatedAt` and `deletedAt` as complexity demands it.
 
 **Foreign keys reference roles, not base entities** — domain tables reference the role that is relevant to the domain:
 

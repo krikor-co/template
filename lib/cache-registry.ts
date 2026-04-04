@@ -1,4 +1,4 @@
-import { revalidateTag, cacheTag } from 'next/cache'
+import { revalidateTag, updateTag, cacheTag } from 'next/cache'
 
 type Resolver<P> = (params: P) => readonly string[]
 type Registry = Record<string, Resolver<any>>
@@ -16,7 +16,8 @@ type TagFunctions<R extends Registry> = {
  *   booking: (p) => ['bookings', `booking:${p.id}`]
  *
  * tagWith() applies the most specific tag inside a 'use cache' scope.
- * invalidate() revalidates the full chain — entity + all ancestors.
+ * invalidate() uses updateTag — immediate freshness (read-your-own-writes).
+ * softInvalidate() uses revalidateTag — serves stale while revalidating in background.
  *
  * Usage:
  *   export const { Tag, tagWith, invalidate, softInvalidate } = createTagRegistry({
@@ -33,12 +34,14 @@ export function createTagRegistry<R extends Registry>(resolvers: R) {
 
   function invalidate(descriptor: readonly string[]) {
     for (const tag of descriptor) {
-      revalidateTag(tag)
+      updateTag(tag)
     }
   }
 
-  function softInvalidate(descriptor: readonly string[]) {
-    invalidate(descriptor)
+  function softInvalidate(descriptor: readonly string[], profile: string = 'default') {
+    for (const tag of descriptor) {
+      revalidateTag(tag, profile)
+    }
   }
 
   return { Tag, tagWith, invalidate, softInvalidate }

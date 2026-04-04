@@ -12,6 +12,12 @@ export async function setAuthEmailCookie(
   ])
 }
 
+export async function setReturnToCookie(context: BrowserContext, returnTo: string) {
+  await context.addCookies([
+    { name: 'auth_return_to', value: returnTo, domain: 'localhost', path: '/', httpOnly: true },
+  ])
+}
+
 export async function setSessionCookie(context: BrowserContext, token: string) {
   await context.addCookies([
     { name: 'session_token', value: token, domain: 'localhost', path: '/', httpOnly: true },

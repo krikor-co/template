@@ -1,5 +1,4 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { cookies } from 'next/headers'
 
 const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET ?? (() => { throw new Error('AUTH_SECRET is not configured') })()
@@ -26,15 +25,4 @@ export async function verifySessionToken(token: string): Promise<SessionPayload>
   }
 
   return { userId: payload.userId, email: payload.email }
-}
-
-export async function getCurrentUser(): Promise<SessionPayload | null> {
-  try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('session_token')?.value
-    if (!token) return null
-    return await verifySessionToken(token)
-  } catch {
-    return null
-  }
 }

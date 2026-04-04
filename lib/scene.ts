@@ -13,13 +13,19 @@ export function createScene<S extends { status: string }, E>(
   options?: SceneOptions<S>
 ) {
   return {
-    useScene(initialState: S): [S, Send<E>] {
-      const [, forceRender] = useState(0)
-      const state     = useRef(initialState)
-      const enteredAt = useRef(Date.now())
+    useScene(initialState: S): [S, Send<E>, () => void] {
+      const [state, setState] = useState(initialState)
+      const stateRef      = useRef(initialState)
+      const initialRef    = useRef(initialState)
+      const enteredAt     = useRef(Date.now())
+      const timerRef      = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+      useEffect(() => () => { clearTimeout(timerRef.current) }, [])
 
       const send = useCallback((event: E) => {
-        const current = state.current
+        clearTimeout(timerRef.current)
+
+        const current = stateRef.current
         const next    = transition(current, event)
         if (next === current) return
 
@@ -29,17 +35,24 @@ export function createScene<S extends { status: string }, E>(
           : (minStay as Record<string, number>)[current.status] ?? 0
 
         const apply = () => {
-          state.current     = next
+          stateRef.current  = next
           enteredAt.current = Date.now()
-          forceRender(n => n + 1)
+          setState(next)
         }
 
         const remaining = ms - (Date.now() - enteredAt.current)
         if (remaining <= 0) apply()
-        else setTimeout(apply, remaining)
+        else timerRef.current = setTimeout(apply, remaining)
       }, [])
 
-      return [state.current, send]
+      const reset = useCallback(() => {
+        clearTimeout(timerRef.current)
+        stateRef.current  = initialRef.current
+        enteredAt.current = Date.now()
+        setState(initialRef.current)
+      }, [])
+
+      return [state, send, reset]
     },
   }
 }

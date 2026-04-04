@@ -1,3 +1,9 @@
+---
+title: Declarative Flows
+order: 10
+category: Principles
+---
+
 # Declarative Flows
 
 ## The Principle

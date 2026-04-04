@@ -1,2 +1,4 @@
 import { redirect } from 'next/navigation'
-export default function Home() { redirect('/dashboard') }
+import { entry as dashboardEntry } from '@/app/dashboard/entry'
+
+export default function Home() { redirect(dashboardEntry.href()) }

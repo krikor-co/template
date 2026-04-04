@@ -7,7 +7,7 @@ export function transition(state: State, event: Event): State {
       break
     case 'submitting':
       if (event.type === 'ERROR')   return { ...state, status: 'error',   message: event.message }
-      if (event.type === 'SUCCESS') return { status:   'success', redirectTo: event.redirectTo }
+      if (event.type === 'SUCCESS') return { status: 'success', email: state.email, redirectTo: event.redirectTo }
       break
     case 'error':
       if (event.type === 'RETRY')   return { ...state, status: 'idle' }

@@ -1,57 +1,53 @@
 'use client'
 
-import { useState } from 'react'
 import { scene } from './scene'
 import { sendLoginOtp } from './actions'
 import type { State } from './state'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { route } from '../../contract'
+import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
+import { useFormValues } from '@/lib/hooks/useFormValues'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Label } from '@/components/ui/Label'
 
-export function LoginForm({ initialState }: { initialState: State }) {
-  const [state, send] = scene.useScene(initialState)
-  const [email, setEmail] = useState('')
-  const router = useRouter()
+export function LoginForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
+  const [state, send, reset] = scene.useScene(initialState)
+  const form = useFormValues()
+  useRedirectOnSuccess(state, reset)
 
   const handleSubmit = async (formData: FormData) => {
+    form.capture(formData)
     send({ type: 'SUBMIT' })
     const result = await sendLoginOtp(formData)
-    if (result && result.success)  send({ type: 'SUCCESS', redirectTo: result.redirectTo })
-    else if (result && result.error) send({ type: 'ERROR',   message:    result.error })
+    if (result.success) send({ type: 'SUCCESS', redirectTo: result.isNew ? route.exits.register() : route.exits.verify() })
+    else send({ type: 'ERROR', message: result.error })
   }
-
-  useEffect(() => {
-    if (state.status === 'success') {
-      setTimeout(() => router.push(state.redirectTo), 1000)
-    }
-  }, [state, router])
 
   switch (state.status) {
     case 'idle':
     case 'submitting':
     case 'error':
       return (
-        <div className="space-y-8">
-          <div className="text-center">
+        <div key="login" className="space-y-8">
+          <div key="header" className="text-center">
             <h1 className="mb-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
             <p className="text-muted-foreground">Enter your email to continue</p>
           </div>
-          <form action={handleSubmit} className="space-y-4">
-            <input type="hidden" name="returnTo" value={state.returnTo ?? ''} />
-
+          <form key="form" action={handleSubmit} className="space-y-4">
+            {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email</label>
-              <input
+              <Label htmlFor="email">Email</Label>
+              <Input
+                key="email"
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                value={email}
-                onChange={(e) => {
+                defaultValue={form.values.email}
+                onChange={() => {
                   if (state.status === 'error') send({ type: 'RETRY' })
-                  setEmail(e.target.value)
                 }}
-                className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="you@example.com"
               />
             </div>
@@ -60,20 +56,31 @@ export function LoginForm({ initialState }: { initialState: State }) {
               <p data-testid="error-message" className="text-sm text-destructive">{state.message}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={state.status === 'submitting'}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            >
+            <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
               {state.status === 'submitting' ? 'Checking for account…' : 'Log in'}
-            </button>
+            </Button>
           </form>
         </div>
       )
     case 'success':
       return (
-        <div className="space-y-4">
-          <p className="text-sm text-green-500">Account found! Redirecting to verification…</p>
+        <div key="login" className="space-y-8">
+          <div key="header" className="text-center">
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
+            <p className="text-muted-foreground">Enter your email to continue</p>
+          </div>
+          <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input key="email" id="email" name="email" type="email" disabled defaultValue={form.values.email} placeholder="you@example.com" />
+            </div>
+
+            <p className="text-sm text-muted-foreground">Redirecting…</p>
+
+            <Button key="submit" type="button" disabled>
+              Redirecting…
+            </Button>
+          </form>
         </div>
       )
   }

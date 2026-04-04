@@ -1,11 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { Shell } from '@/lib/shell'
 import { VerifyForm } from './VerifyForm'
 import { fixtures } from './fixtures'
 
 const meta: Meta<typeof VerifyForm> = {
   component: VerifyForm,
-  parameters: { nextjs: { appDirectory: true } },
+  parameters: { nextjs: { appDirectory: true }, shell: true },
 }
 export default meta
 type Story = StoryObj<typeof VerifyForm>
@@ -14,28 +13,3 @@ export const Idle: Story       = { args: { initialState: fixtures.idle } }
 export const Submitting: Story = { args: { initialState: fixtures.submitting } }
 export const Error: Story      = { args: { initialState: fixtures.error } }
 export const Success: Story    = { args: { initialState: fixtures.success } }
-
-export const InFullPage: Story = {
-  args: { initialState: fixtures.idle },
-  decorators: [(Story) => <Shell.FullPage><Story /></Shell.FullPage>],
-}
-
-export const InCard: Story = {
-  args: { initialState: fixtures.idle },
-  decorators: [(Story) => <div className="p-8"><Shell.Card><Story /></Shell.Card></div>],
-}
-
-export const InModal: Story = {
-  args: { initialState: fixtures.idle },
-  decorators: [(Story) => <Shell.Modal open onClose={() => {}}><Story /></Shell.Modal>],
-}
-
-export const InDrawerRight: Story = {
-  args: { initialState: fixtures.idle },
-  decorators: [(Story) => <Shell.Drawer open onClose={() => {}} side="right"><Story /></Shell.Drawer>],
-}
-
-export const InDrawerLeft: Story = {
-  args: { initialState: fixtures.idle },
-  decorators: [(Story) => <Shell.Drawer open onClose={() => {}} side="left"><Story /></Shell.Drawer>],
-}

@@ -7,7 +7,10 @@ import { persons, users, sessions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { verifyEmailOtp } from '@/lib/otp/email-otp'
 import { createSessionToken } from '@/lib/auth/jwt'
-import { AUTH_TRANSITION_COOKIES } from '@/lib/auth/guards'
+import { transitions, AUTH_RETURN_TO_COOKIE } from '@/app/auth/guards'
+import { createRateLimit, getClientIp } from '@/lib/rate-limit'
+
+const verifyLimit = createRateLimit({ action: 'verify_otp', max: 5, windowMs: 15 * 60 * 1000 })
 
 const schema = z.object({
   email: z.string().email(),
@@ -16,7 +19,7 @@ const schema = z.object({
 
 export async function verifyOtpAction(
   formData: FormData
-): Promise<{ success: false; error: string } | { success: true; redirectTo: string }> {
+): Promise<{ success: false; error: string } | { success: true }> {
   const parsed = schema.safeParse({
     email: formData.get('email'),
     code:  formData.get('code'),
@@ -24,6 +27,10 @@ export async function verifyOtpAction(
   if (!parsed.success) return { success: false, error: 'Invalid input.' }
 
   const { email, code } = parsed.data
+
+  const ip = await getClientIp()
+  const limit = await verifyLimit.check(email, ip)
+  if (!limit.ok) return { success: false, error: limit.error }
 
   const isValid = await verifyEmailOtp(email, code)
   if (!isValid) return { success: false, error: 'Invalid or expired code. Please try again.' }
@@ -63,15 +70,10 @@ export async function verifyOtpAction(
     maxAge:   60 * 60 * 24 * 30,
     path:     '/',
   })
-  cookieStore.delete('auth_is_new')
-  cookieStore.set(AUTH_TRANSITION_COOKIES.verify, '1', {
-    httpOnly: false,
-    secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    maxAge:   2,
-    path:     '/',
-  })
+  cookieStore.set('auth_email', '', { path: '/', maxAge: 0 })
+  cookieStore.set('auth_is_new', '', { path: '/', maxAge: 0 })
+  cookieStore.set(AUTH_RETURN_TO_COOKIE, '', { path: '/', maxAge: 0 })
+  await transitions.verify.grant()
 
-  const returnTo = formData.get('returnTo')
-  return { success: true, redirectTo: typeof returnTo === 'string' && returnTo ? returnTo : '/dashboard' }
+  return { success: true }
 }

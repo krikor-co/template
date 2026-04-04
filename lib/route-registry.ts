@@ -4,16 +4,22 @@ export type ParseContext = {
   cookies:      Record<string, string>
 }
 
-type Entry<P> = {
+export type Entry<P> = {
   href:  (params: P) => string
   parse: (ctx: ParseContext) => P
 }
 
-type Exits = Record<string, (params: any) => string>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExitFn = (...args: any[]) => string
 
-export function createRoute<P, E extends Exits>(config: {
+export type Route<P = unknown, E extends Record<string, ExitFn> = Record<string, ExitFn>> = {
+  readonly entry: Entry<P>
+  readonly exits: { readonly [K in keyof E]: E[K] }
+}
+
+export function createRoute<P, E extends Record<string, ExitFn>>(config: {
   entry: Entry<P>
   exits: E
-}) {
+}): Route<P, E> {
   return config
 }

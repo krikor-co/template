@@ -1,52 +1,47 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { scene } from './scene';
-import { verifyOtpAction } from './actions';
-import type { State } from './state';
-import { useEffect } from 'react';
+import { scene } from './scene'
+import { verifyOtpAction } from './actions'
+import type { State } from './state'
+import { route } from '../../contract'
+import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
+import { useFormValues } from '@/lib/hooks/useFormValues'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Label } from '@/components/ui/Label'
 
-export function VerifyForm({ initialState }: { initialState: State }) {
-  const [state, send] = scene.useScene(initialState);
-  const [code, setCode] = useState('');
-  const router = useRouter();
+export function VerifyForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
+  const [state, send, reset] = scene.useScene(initialState)
+  const form = useFormValues()
+  useRedirectOnSuccess(state, reset, 2000)
 
   const handleSubmit = async (formData: FormData) => {
-    send({ type: 'SUBMIT' });
-    const result = await verifyOtpAction(formData);
-    if (result.success)
-      send({ type: 'SUCCESS', redirectTo: result.redirectTo });
-    else if (result && result.error) send({ type: 'ERROR', message: result.error });
-  };
-
-  useEffect(() => {
-    if (state.status === 'success') {
-      setTimeout(() => router.push(state.redirectTo), 2000);
-    }
-  }, [state, router]);
+    form.capture(formData)
+    send({ type: 'SUBMIT' })
+    const result = await verifyOtpAction(formData)
+    if (result.success) send({ type: 'SUCCESS', redirectTo: returnTo ?? route.exits.dashboard() })
+    else send({ type: 'ERROR', message: result.error })
+  }
 
   switch (state.status) {
     case 'idle':
     case 'submitting':
     case 'error':
       return (
-        <div className="space-y-8">
-          <div className="text-center">
+        <div key="verify" className="space-y-8">
+          <div key="header" className="text-center">
             <h1 className="mb-2 text-3xl font-semibold tracking-tight">Check your email</h1>
             <p className="text-muted-foreground">
               We sent a 6-digit code to <strong>{state.email}</strong>
             </p>
           </div>
-          <form action={handleSubmit} className="space-y-4">
+          <form key="form" action={handleSubmit} className="space-y-4">
             <input type="hidden" name="email" value={state.email} />
-            <input type="hidden" name="returnTo" value={state.returnTo ?? ''} />
 
             <div className="space-y-2">
-              <label htmlFor="code" className="text-sm font-medium">
-                Verification code
-              </label>
-              <input
+              <Label htmlFor="code">Verification code</Label>
+              <Input
+                key="code"
                 id="code"
                 name="code"
                 type="text"
@@ -54,12 +49,11 @@ export function VerifyForm({ initialState }: { initialState: State }) {
                 autoComplete="one-time-code"
                 maxLength={6}
                 required
-                value={code}
-                onChange={(e) => {
-                  if (state.status === 'error') send({ type: 'RETRY' });
-                  setCode(e.target.value);
+                defaultValue={form.values.code}
+                onChange={() => {
+                  if (state.status === 'error') send({ type: 'RETRY' })
                 }}
-                className="w-full rounded-md border px-3 py-2 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-ring"
+                className="py-2.5 text-center text-2xl tracking-widest"
                 placeholder="000000"
               />
             </div>
@@ -68,22 +62,43 @@ export function VerifyForm({ initialState }: { initialState: State }) {
               <p data-testid="error-message" className="text-sm text-destructive">{state.message}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={state.status === 'submitting'}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            >
+            <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
               {state.status === 'submitting' ? 'Verifying…' : 'Verify code'}
-            </button>
+            </Button>
           </form>
         </div>
-      );
-
+      )
     case 'success':
       return (
-        <p className="text-center text-sm text-muted-foreground">
-          Verified! Redirecting…
-        </p>
-      );
+        <div key="verify" className="space-y-8">
+          <div key="header" className="text-center">
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Check your email</h1>
+            <p className="text-muted-foreground">
+              We sent a 6-digit code to <strong>{state.email}</strong>
+            </p>
+          </div>
+          <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
+            <div className="space-y-2">
+              <Label htmlFor="code">Verification code</Label>
+              <Input
+                key="code"
+                id="code"
+                name="code"
+                type="text"
+                disabled
+                defaultValue={form.values.code}
+                className="py-2.5 text-center text-2xl tracking-widest"
+                placeholder="000000"
+              />
+            </div>
+
+            <p className="text-sm text-muted-foreground">Verified! Redirecting…</p>
+
+            <Button key="submit" type="button" disabled>
+              Redirecting…
+            </Button>
+          </form>
+        </div>
+      )
   }
 }

@@ -7,33 +7,37 @@ import { persons } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { createEmailOtp } from '@/lib/otp/email-otp'
 import { Resend } from 'resend'
-import { route } from '../../contract'
-import { AUTH_TRANSITION_COOKIES } from '@/lib/auth/guards'
+import { transitions } from '@/app/auth/guards'
+import { createRateLimit, getClientIp } from '@/lib/rate-limit'
+
+const registerLimit = createRateLimit({ action: 'register', max: 3, windowMs: 15 * 60 * 1000 })
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const schema = z.object({
-  email:    z.string().email(),
-  name:     z.string().trim().optional(),
-  returnTo: z.string().optional(),
+  email: z.string().email(),
+  name:  z.string().trim().optional(),
 })
 
 export async function registerAction(
   formData: FormData
-): Promise<{ success: false; error: string } | { success: true; redirectTo: string }> {
+): Promise<{ success: false; error: string } | { success: true }> {
   const parsed = schema.safeParse({
-    email:    formData.get('email'),
-    name:     formData.get('name') || undefined,
-    returnTo: formData.get('returnTo') || undefined,
+    email: formData.get('email'),
+    name:  formData.get('name') || undefined,
   })
   if (!parsed.success) return { success: false, error: 'Invalid input.' }
 
-  const { email, name, returnTo } = parsed.data
+  const { email, name } = parsed.data
+
+  const ip = await getClientIp()
+  const limit = await registerLimit.check(email, ip)
+  if (!limit.ok) return { success: false, error: limit.error }
 
   const existing = await db.select().from(persons).where(eq(persons.email, email)).limit(1)
-  if (existing.length === 0) {
-    await db.insert(persons).values({ email, name: name ?? null })
-  }
+  if (existing.length > 0) return { success: false, error: 'Account already exists.' }
+
+  await db.insert(persons).values({ email, name: name ?? null })
 
   const { code } = await createEmailOtp(email)
 
@@ -48,20 +52,14 @@ export async function registerAction(
 
   const cookieStore = await cookies()
   cookieStore.set('auth_email', email, {
-    httpOnly: false,
+    httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge:   60 * 15,
     path:     '/',
   })
   cookieStore.delete('auth_is_new')
-  cookieStore.set(AUTH_TRANSITION_COOKIES.register, '1', {
-    httpOnly: false,
-    secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
-    maxAge:   2,
-    path:     '/',
-  })
+  await transitions.register.grant()
 
-  return { success: true, redirectTo: route.exits.verify({ returnTo }) }
+  return { success: true }
 }

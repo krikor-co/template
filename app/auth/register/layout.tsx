@@ -1,11 +1,9 @@
-import { canRegister } from "@/lib/auth/guards"
+import { canRegister } from "@/app/auth/guards"
 import { redirect } from "next/navigation"
 
-export default async function RegisterLayout({ children, searchParams }: { children: React.ReactNode, searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-    const sp = await searchParams
-    const returnTo = sp?.returnTo && typeof sp.returnTo === 'string' ? sp.returnTo : undefined
-  
-    const to = await canRegister({ returnTo })
-    if (to) redirect(to)
+export default async function RegisterLayout({ children }: { children: React.ReactNode }) {
+  const to = await canRegister()
+  if (to) redirect(to)
+
   return <>{children}</>
 }

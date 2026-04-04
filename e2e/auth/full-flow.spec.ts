@@ -42,17 +42,19 @@ test.describe.serial('auth happy paths', () => {
   })
 
   test('returnTo is preserved through the full flow', async ({ page, request }) => {
-    // Use a subpath distinct from the default '/dashboard' so we can assert it was honoured
-    const returnTo = encodeURIComponent('/dashboard/return-test')
-    await page.goto(`/auth/identify?returnTo=${returnTo}`)
+    // Use a subpath distinct from the default '/dashboard' so we can assert it was honoured.
+    // The identify page captures returnTo from the URL into the auth_return_to cookie;
+    // the verify action reads it back and redirects there after successful OTP.
+    await page.goto('/auth/identify?returnTo=%2Fdashboard%2Freturn-test')
+    await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1100)
     await page.fill('input[name="email"]', email)
     await page.click('button[type="submit"]')
-    await page.waitForURL('**/auth/verify**', { timeout: 10_000 })
+    await page.waitForURL('**/auth/verify', { timeout: 10_000 })
 
     const code = await insertTestOtp(request, email)
     await completeVerifyStep(page, code)
 
-    await page.waitForURL('**/dashboard/return-test**', { timeout: 15_000 })
+    await page.waitForURL('**/dashboard/return-test', { timeout: 15_000 })
   })
 })
