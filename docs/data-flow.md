@@ -267,16 +267,14 @@ export const route = createRoute({
 **CreateAppointmentForm/state.ts**:
 ```typescript
 export type State =
-  | { status: 'idle';       service: string; date: string }
-  | { status: 'submitting'; service: string; date: string }
-  | { status: 'error';      service: string; date: string; message: string }
-  | { status: 'success';    appointmentId: string }
+  | { status: 'idle' }
+  | { status: 'submitting' }
+  | { status: 'error';   message: string }
+  | { status: 'success'; redirectTo: string }
 
 export type Event =
-  | { type: 'SET_SERVICE'; service: string }
-  | { type: 'SET_DATE';    date: string }
   | { type: 'SUBMIT' }
-  | { type: 'SUCCESS'; appointmentId: string }
+  | { type: 'SUCCESS'; redirectTo: string }
   | { type: 'ERROR';   message: string }
   | { type: 'RETRY' }
 ```
@@ -286,27 +284,20 @@ export type Event =
 import type { State, Event } from './state'
 
 export function transition(state: State, event: Event): State {
-  switch (event.type) {
-    case 'SET_SERVICE':
-      if (state.status !== 'idle' && state.status !== 'error') return state
-      return { ...state, status: 'idle', service: event.service }
-    case 'SET_DATE':
-      if (state.status !== 'idle' && state.status !== 'error') return state
-      return { ...state, status: 'idle', date: event.date }
-    case 'SUBMIT':
-      if (state.status !== 'idle') return state
-      return { ...state, status: 'submitting' }
-    case 'SUCCESS':
-      return { status: 'success', appointmentId: event.appointmentId }
-    case 'ERROR':
-      if (state.status !== 'submitting') return state
-      return { ...state, status: 'error', message: event.message }
-    case 'RETRY':
-      if (state.status !== 'error') return state
-      return { ...state, status: 'idle' }
-    default:
-      return state
+  switch (state.status) {
+    case 'idle':
+      if (event.type === 'SUBMIT') return { status: 'submitting' }
+      break
+    case 'submitting':
+      if (event.type === 'SUCCESS') return { status: 'success', redirectTo: event.redirectTo }
+      if (event.type === 'ERROR')   return { status: 'error', message: event.message }
+      break
+    case 'error':
+      if (event.type === 'RETRY')  return { status: 'idle' }
+      if (event.type === 'SUBMIT') return { status: 'submitting' }
+      break
   }
+  return state
 }
 ```
 
@@ -327,15 +318,18 @@ import { invalidate } from '@/lib/appointment/tags'
 import { Tag } from '@/lib/appointment/tags'
 
 export async function createAppointment(
-  service: string,
-  date: string,
-): Promise<{ appointmentId: string }> {
+  formData: FormData,
+): Promise<{ success: true; appointmentId: string } | { success: false; error: string }> {
+  const service = formData.get('service') as string
+  const date = formData.get('date') as string
+  if (!service || !date) return { success: false, error: 'Service and date are required.' }
+
   const [row] = await db
     .insert(appointments)
     .values({ service, date, status: 'pending' })
     .returning({ id: appointments.id })
   invalidate(Tag.appointments({}))
-  return { appointmentId: row.id }
+  return { success: true, appointmentId: row.id }
 }
 ```
 
@@ -344,62 +338,76 @@ export async function createAppointment(
 import type { State } from './state'
 
 export const fixtures = {
-  idle:       { status: 'idle',       service: '',         date: ''           } satisfies State,
-  submitting: { status: 'submitting', service: 'Haircut',  date: '2026-04-10' } satisfies State,
-  error:      { status: 'error',      service: 'Haircut',  date: '2026-04-10', message: 'Server error' } satisfies State,
-  success:    { status: 'success',    appointmentId: 'abc123'                  } satisfies State,
+  idle:       { status: 'idle' }                                                              satisfies State,
+  submitting: { status: 'submitting' }                                                        satisfies State,
+  error:      { status: 'error',   message: 'Something went wrong.' }                         satisfies State,
+  success:    { status: 'success', redirectTo: '/appointments/detail?id=abc123' }              satisfies State,
 }
 ```
 
 **CreateAppointmentForm/CreateAppointmentForm.tsx**:
 ```tsx
 'use client'
-import { useRouter } from 'next/navigation'
 import { route } from '../../contract'
 import { scene } from './scene'
 import { createAppointment } from './actions'
+import { useFormValues } from '@/lib/hooks/useFormValues'
+import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import type { State } from './state'
 
 export function CreateAppointmentForm({ initialState }: { initialState: State }) {
   const [state, send, reset] = scene.useScene(initialState)
-  const router = useRouter()
+  const form = useFormValues()
+  useRedirectOnSuccess(state, reset)
+
+  const handleSubmit = async (formData: FormData) => {
+    form.capture(formData)
+    send({ type: 'SUBMIT' })
+    const result = await createAppointment(formData)
+    if (result.success) {
+      send({ type: 'SUCCESS', redirectTo: route.exits.detail({ id: result.appointmentId }) })
+    } else {
+      send({ type: 'ERROR', message: result.error })
+    }
+  }
 
   switch (state.status) {
     case 'idle':
+    case 'submitting':
     case 'error':
       return (
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault()
-            send({ type: 'SUBMIT' })
-            try {
-              const result = await createAppointment(state.service, state.date)
-              send({ type: 'SUCCESS', appointmentId: result.appointmentId })
-              router.push(route.exits.detail({ id: result.appointmentId }))
-              reset()
-            } catch (err) {
-              send({ type: 'ERROR', message: (err as Error).message })
-            }
-          }}
-        >
-          <input
-            value={state.service}
-            onChange={(e) => send({ type: 'SET_SERVICE', service: e.target.value })}
-            placeholder="Service"
-          />
-          <input
-            type="date"
-            value={state.date}
-            onChange={(e) => send({ type: 'SET_DATE', date: e.target.value })}
-          />
-          {state.status === 'error' && <p className="text-destructive">{state.message}</p>}
-          <button type="submit">Book appointment</button>
+        <form action={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="service">Service</label>
+            <input id="service" name="service" defaultValue={form.values.service} placeholder="Service" />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="date">Date</label>
+            <input id="date" name="date" type="date" defaultValue={form.values.date} />
+          </div>
+          {state.status === 'error' && (
+            <p className="text-sm text-destructive">{state.message}</p>
+          )}
+          <button type="submit" disabled={state.status === 'submitting'}>
+            {state.status === 'submitting' ? 'Booking…' : 'Book appointment'}
+          </button>
         </form>
       )
-    case 'submitting':
-      return <p>Booking…</p>
     case 'success':
-      return <p>Appointment {state.appointmentId} booked.</p>
+      return (
+        <form className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-2">
+            <label htmlFor="service">Service</label>
+            <input id="service" name="service" defaultValue={form.values.service} disabled />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="date">Date</label>
+            <input id="date" name="date" type="date" defaultValue={form.values.date} disabled />
+          </div>
+          <p className="text-sm text-muted-foreground">Redirecting…</p>
+          <button type="button" disabled>Redirecting…</button>
+        </form>
+      )
   }
 }
 ```

@@ -30,6 +30,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`declarative-flows.md`](docs/declarative-flows.md) | Action-first design, state machines |
 | [`forms.md`](docs/forms.md) | useFormValues, value persistence, validation, controlled vs uncontrolled |
 | [`schema.md`](docs/schema.md) | Entity-first database modeling |
+| [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
 
 ---
 

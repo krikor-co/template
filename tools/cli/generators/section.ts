@@ -29,7 +29,7 @@ export async function generateSection(target: string, opts: Options): Promise<vo
   // ── Always generated ──────────────────────────────────────────
 
   writeState(dir, name, opts)
-  writeFixtures(dir, name)
+  writeFixtures(dir, name, opts)
   writeComponent(dir, name, opts)
   writeStories(dir, name, opts)
 
@@ -70,54 +70,129 @@ export async function generateSection(target: string, opts: Options): Promise<vo
 // ── Template writers ──────────────────────────────────────────────
 
 function writeState(dir: string, _name: string, opts: Options): void {
-  const events = opts.client
-    ? `
+  if (opts.client) {
+    writeFile(
+      path.join(dir, 'state.ts'),
+      `export type State =
+  | { status: 'idle' }
+  | { status: 'submitting' }
+  | { status: 'error';   message: string }
+  | { status: 'success'; redirectTo: string }
 
 export type Event =
   | { type: 'SUBMIT' }
-  | { type: 'SUCCESS' }
-  | { type: 'ERROR'; message: string }
+  | { type: 'SUCCESS'; redirectTo: string }
+  | { type: 'ERROR';   message: string }
   | { type: 'RETRY' }
-`
-    : '\n'
-
-  writeFile(
-    path.join(dir, 'state.ts'),
-    `export type State =
+`,
+    )
+  } else {
+    writeFile(
+      path.join(dir, 'state.ts'),
+      `export type State =
   | { status: 'idle' }
   | { status: 'error'; message: string }
-${events}`,
-  )
+`,
+    )
+  }
 }
 
-function writeFixtures(dir: string, _name: string): void {
-  writeFile(
-    path.join(dir, 'fixtures.ts'),
-    `import type { State } from './state'
+function writeFixtures(dir: string, _name: string, opts: Options): void {
+  if (opts.client) {
+    writeFile(
+      path.join(dir, 'fixtures.ts'),
+      `import type { State } from './state'
+
+export const fixtures = {
+  idle:       { status: 'idle' }                                        satisfies State,
+  submitting: { status: 'submitting' }                                  satisfies State,
+  error:      { status: 'error',   message: 'Something went wrong.' }   satisfies State,
+  success:    { status: 'success', redirectTo: '/TODO' }                satisfies State,
+}
+`,
+    )
+  } else {
+    writeFile(
+      path.join(dir, 'fixtures.ts'),
+      `import type { State } from './state'
 
 export const fixtures = {
   idle:  { status: 'idle' }                                    satisfies State,
   error: { status: 'error', message: 'Something went wrong.' } satisfies State,
 }
 `,
-  )
+    )
+  }
 }
 
 function writeComponent(dir: string, name: string, opts: Options): void {
-  const useClient = opts.client ? `'use client'\n\n` : ''
+  if (opts.client && opts.mutates) {
+    writeFile(
+      path.join(dir, `${name}.tsx`),
+      `'use client'
 
-  const imports = opts.client
-    ? `import { scene } from './scene'
-import type { State } from './state'`
-    : `import type { State } from './state'`
+import { scene } from './scene'
+import { submitAction } from './actions'
+import type { State } from './state'
+import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
+import { useFormValues } from '@/lib/hooks/useFormValues'
 
-  const body = opts.client
-    ? `export function ${name}({ initialState }: { initialState: State }) {
+export function ${name}({ initialState }: { initialState: State }) {
+  const [state, send, reset] = scene.useScene(initialState)
+  const form = useFormValues()
+  useRedirectOnSuccess(state, reset)
+
+  const handleSubmit = async (formData: FormData) => {
+    form.capture(formData)
+    send({ type: 'SUBMIT' })
+    const result = await submitAction(formData)
+    if (result.success) send({ type: 'SUCCESS', redirectTo: 'TODO' })
+    else send({ type: 'ERROR', message: result.error })
+  }
+
+  switch (state.status) {
+    case 'idle':
+    case 'submitting':
+    case 'error':
+      return (
+        <form action={handleSubmit} className="space-y-4">
+          {/* TODO: add fields with defaultValue={form.values.xxx} */}
+          {state.status === 'error' && (
+            <p className="text-sm text-destructive">{state.message}</p>
+          )}
+          <button type="submit" disabled={state.status === 'submitting'}>
+            {state.status === 'submitting' ? 'Saving…' : 'Save'}
+          </button>
+        </form>
+      )
+    case 'success':
+      return (
+        <form className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
+          {/* TODO: mirror fields with disabled */}
+          <p className="text-sm text-muted-foreground">Redirecting…</p>
+          <button type="button" disabled>Redirecting…</button>
+        </form>
+      )
+  }
+}
+`,
+    )
+  } else if (opts.client) {
+    writeFile(
+      path.join(dir, `${name}.tsx`),
+      `'use client'
+
+import { scene } from './scene'
+import type { State } from './state'
+
+export function ${name}({ initialState }: { initialState: State }) {
   const [state, send, reset] = scene.useScene(initialState)
 
   switch (state.status) {
     case 'idle':
       return <div>TODO: idle</div>
+    case 'submitting':
+      return <div>Submitting…</div>
     case 'error':
       return (
         <div>
@@ -125,28 +200,44 @@ import type { State } from './state'`
           <button onClick={() => send({ type: 'RETRY' })}>Retry</button>
         </div>
       )
+    case 'success':
+      return <div>Done. Redirecting…</div>
   }
-}`
-    : `export function ${name}({ state }: { state: State }) {
+}
+`,
+    )
+  } else {
+    writeFile(
+      path.join(dir, `${name}.tsx`),
+      `import type { State } from './state'
+
+export function ${name}({ state }: { state: State }) {
   switch (state.status) {
     case 'idle':
       return <div>TODO: idle</div>
     case 'error':
       return <div>{state.message}</div>
   }
-}`
-
-  writeFile(
-    path.join(dir, `${name}.tsx`),
-    `${useClient}${imports}
-
-${body}
+}
 `,
-  )
+    )
+  }
 }
 
 function writeStories(dir: string, name: string, opts: Options): void {
   const propName = opts.client ? 'initialState' : 'state'
+  const params = opts.client
+    ? `{ nextjs: { appDirectory: true }, shell: true }`
+    : `{ nextjs: { appDirectory: true } }`
+
+  const stories = opts.client
+    ? `export const Idle: Story       = { args: { ${propName}: fixtures.idle } }
+export const Submitting: Story = { args: { ${propName}: fixtures.submitting } }
+export const Error: Story      = { args: { ${propName}: fixtures.error } }
+export const Success: Story    = { args: { ${propName}: fixtures.success } }`
+    : `export const Idle: Story  = { args: { ${propName}: fixtures.idle } }
+export const Error: Story = { args: { ${propName}: fixtures.error } }`
+
   writeFile(
     path.join(dir, `${name}.stories.tsx`),
     `import type { Meta, StoryObj } from '@storybook/react'
@@ -155,13 +246,12 @@ import { fixtures } from './fixtures'
 
 const meta: Meta<typeof ${name}> = {
   component: ${name},
-  parameters: { nextjs: { appDirectory: true } },
+  parameters: ${params},
 }
 export default meta
 type Story = StoryObj<typeof ${name}>
 
-export const Idle: Story  = { args: { ${propName}: fixtures.idle } }
-export const Error: Story = { args: { ${propName}: fixtures.error } }
+${stories}
 `,
   )
 }
@@ -172,20 +262,20 @@ function writeTransition(dir: string, _name: string): void {
     `import type { State, Event } from './state'
 
 export function transition(state: State, event: Event): State {
-  switch (event.type) {
-    case 'SUBMIT':
-      if (state.status !== 'idle') return state
-      return state // TODO: transition to submitting
-    case 'SUCCESS':
-      return state // TODO: transition to success
-    case 'ERROR':
-      return { ...state, status: 'error', message: event.message }
-    case 'RETRY':
-      if (state.status !== 'error') return state
-      return { ...state, status: 'idle' }
-    default:
-      return state
+  switch (state.status) {
+    case 'idle':
+      if (event.type === 'SUBMIT') return { status: 'submitting' }
+      break
+    case 'submitting':
+      if (event.type === 'ERROR')   return { status: 'error', message: event.message }
+      if (event.type === 'SUCCESS') return { status: 'success', redirectTo: event.redirectTo }
+      break
+    case 'error':
+      if (event.type === 'RETRY')  return { status: 'idle' }
+      if (event.type === 'SUBMIT') return { status: 'submitting' }
+      break
   }
+  return state
 }
 `,
   )

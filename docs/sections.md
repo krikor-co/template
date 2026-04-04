@@ -248,7 +248,7 @@ export async function BookingsList({ deps = defaultDeps }: Props) {
   return <BookingsListView state={state} />
 }
 
-function BookingsListView({ state }: { state: State }) {
+export function BookingsListView({ state }: { state: State }) {
   switch (state.status) {
     case 'empty':
       return <p className="text-muted-foreground">No bookings yet.</p>
@@ -458,11 +458,11 @@ export type State =
   | { status: 'idle';        serviceId: string; date: string }
   | { status: 'submitting';  serviceId: string; date: string }
   | { status: 'error';       serviceId: string; date: string; message: string }
-  | { status: 'success';     bookingId: string }
+  | { status: 'success';     redirectTo: string }
 
 export type Event =
   | { type: 'SUBMIT' }
-  | { type: 'SUCCESS'; bookingId: string }
+  | { type: 'SUCCESS'; redirectTo: string }
   | { type: 'ERROR';   message: string }
   | { type: 'RETRY' }
 ```
@@ -477,7 +477,7 @@ export function transition(state: State, event: Event): State {
       if (state.status !== 'idle') return state
       return { ...state, status: 'submitting' }
     case 'SUCCESS':
-      return { status: 'success', bookingId: event.bookingId }
+      return { status: 'success', redirectTo: event.redirectTo }
     case 'ERROR':
       if (state.status !== 'submitting') return state
       return { ...state, status: 'error', message: event.message }
@@ -519,15 +519,15 @@ export async function createBooking(
 **ConfirmBookingForm.tsx**:
 ```tsx
 'use client'
-import { useRouter } from 'next/navigation'
 import { route } from '../../contract'
 import { scene } from './scene'
 import { createBooking } from './actions'
+import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import type { State } from './state'
 
 export function ConfirmBookingForm({ initialState }: { initialState: State }) {
   const [state, send, reset] = scene.useScene(initialState)
-  const router = useRouter()
+  useRedirectOnSuccess(state, reset)
 
   switch (state.status) {
     case 'idle':
@@ -539,8 +539,7 @@ export function ConfirmBookingForm({ initialState }: { initialState: State }) {
               send({ type: 'SUBMIT' })
               try {
                 const result = await createBooking(state.serviceId, state.date)
-                send({ type: 'SUCCESS', bookingId: result.bookingId })
-                router.push(route.exits.detail({ id: result.bookingId }))
+                send({ type: 'SUCCESS', redirectTo: route.exits.detail({ id: result.bookingId }) })
               } catch (e) {
                 send({ type: 'ERROR', message: (e as Error).message })
               }
@@ -560,7 +559,7 @@ export function ConfirmBookingForm({ initialState }: { initialState: State }) {
         </div>
       )
     case 'success':
-      return <p>Booking {state.bookingId} confirmed.</p>
+      return <p>Redirecting…</p>
   }
 }
 ```

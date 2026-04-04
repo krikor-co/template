@@ -186,7 +186,7 @@ The Input primitive stays dumb — standard HTML input props. The hook generates
 
 ### Fields without validation
 
-`form.field('name')` with no options still returns `{ name, defaultValue, onChange }` — value persistence for free.
+`form.field('name')` with no options still returns `{ name, defaultValue, onBlur, onChange }` — value persistence for free.
 
 ### What happens on submit
 
