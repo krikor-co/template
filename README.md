@@ -11,6 +11,8 @@ Primitives     raw UI atoms: Button, Input, Badge
 
 Every non-primitive component is a section. Every section has an exhaustive state type. Every state renders through a `switch`. No exceptions.
 
+**Demo**: https://template-krikor.vercel.app/ | **Docs**: https://template-krikor.vercel.app/docs
+
 ## Stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS · Drizzle ORM · PostgreSQL · Zod · Storybook · Playwright
