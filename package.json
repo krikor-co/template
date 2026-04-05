@@ -45,7 +45,6 @@
     "@playwright/test": "^1.58.2",
     "@storybook/nextjs": "^10.3.3",
     "@storybook/react": "^10.3.3",
-    "@storybook/test": "^8.6.15",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
     "@types/react": "19.2.14",
