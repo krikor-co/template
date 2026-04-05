@@ -18,6 +18,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 
 | Doc | What it covers |
 |-----|---------------|
+| [`overview.md`](docs/overview.md) | What the template is, how to get started, reading order |
 | [`pages.md`](docs/pages.md) | Page layer, hierarchy, system overview |
 | [`routing.md`](docs/routing.md) | RouteRegistry, entry.ts, contract.ts, exits |
 | [`shells.md`](docs/shells.md) | Shell types + full implementation |
@@ -63,7 +64,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 - Every non-primitive component is a section — no exceptions
 - `State` must be a discriminated union — every status is explicit and exhaustive
 - Component body = `switch (state.status)` only — no business logic in JSX
-- `useScene` returns `[state, send, reset]` — always call `reset()` after `router.push` to prevent stale Router Cache loops (or use `useRedirectOnSuccess(state, reset)`)
+- `useScene` returns `[state, send, reset]` — always call `reset()` after `router.push` to prevent stale Router Cache loops (or use `useRedirectOnSuccess(state, reset)` — for form sections pass `[reset, form.reset]`)
 - `useState`, `useEffect`, and all React hooks live only in custom hook files (`.ts`) — applies to page, shell, section, and primitive layers (not `lib/` framework utilities)
 - Input field values (`email`, `code`, `name`, …) are **not** scene state — they belong in `useFormValues`
 - `<form action={fn}>` triggers `form.reset()` on resolve (success AND error) — use `useFormValues` to capture values and provide `defaultValue` that survives the reset
@@ -99,7 +100,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | Component fetches AND data can be mutated | Add tags.ts |
 | After mutation, want immediate freshness | `invalidate(Tag.x(...))` |
 | After mutation, eventual consistency is fine | `softInvalidate(Tag.x(...))` |
-| Navigate after async work in a client component | `router.push(route.exits.next(...))` then `reset()` — or use `useRedirectOnSuccess(state, reset)` |
+| Navigate after async work in a client component | `router.push(route.exits.next(...))` then `reset()` — or use `useRedirectOnSuccess(state, reset)` (form sections: `[reset, form.reset]`) |
 | Navigate from a server component | `redirect(route.exits.next(...))` |
 | Action needs to trigger navigation | Action returns domain data — section maps to `route.exits.*()` and calls `router.push` |
 | Navigate with no async work before | `<Link href={route.exits.next(...)}>` |

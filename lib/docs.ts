@@ -34,7 +34,7 @@ export function getAllDocs(): DocMeta[] {
     .sort((a, b) => a.order - b.order)
 }
 
-const categoryOrder = ['Core', 'Patterns', 'Infrastructure', 'Principles']
+const categoryOrder = ['Guide', 'Core', 'Patterns', 'Infrastructure', 'Principles']
 
 export function getCategories(): Map<string, DocMeta[]> {
   const docs = getAllDocs()

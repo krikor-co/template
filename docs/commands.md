@@ -1,153 +1,151 @@
 ---
 title: Commands
-order: 11
-category: Infrastructure
+order: 1
+category: Guide
 ---
 
 # Commands
 
-Three slash commands scaffold framework-compliant code. They work in Claude Code (CLI, desktop, web, IDE extensions) — type the command and provide arguments.
-
-These commands are designed for both humans and AI agents. A human types `/scaffold-route app/bookings/new` and reviews the output. An AI agent invoked with "build a booking feature" uses `/scaffold-feature` internally to produce the same consistent structure.
+Two sets of scaffolding commands: a **CLI** for deterministic file generation, and **Claude Code slash commands** that call the CLI and then fill in the domain logic.
 
 ---
 
-## `/scaffold-route`
+## CLI — `flow generate`
 
-Creates the three files every route needs: `entry.ts`, `contract.ts`, and `page.tsx`.
+The CLI lives at `tools/cli/index.ts`. It generates skeleton files with TODOs — no AI, no dependencies beyond the project itself.
 
-### Usage
+```bash
+# Shorthand: flow g
+npx tsx tools/cli/index.ts generate <type> <path> [flags]
+```
+
+### `flow g route <path>`
+
+Creates the three files every route needs plus a layout:
+
+```bash
+npx tsx tools/cli/index.ts g route app/bookings/new
+```
+
+| File | What it generates |
+|------|-------------------|
+| `entry.ts` | Empty Zod schema, `href()` and `parse()` stubs |
+| `contract.ts` | `createRoute({ entry, exits: {} })` — no exits wired |
+| `page.tsx` | Async server component with commented-out entry parsing, `<Shell.FullPage>` wrapper |
+| `layout.tsx` | Pass-through layout ready for guards |
+
+After running, fill in:
+1. Define entry params in `entry.ts`
+2. Wire exits in `contract.ts`
+3. Compose Shell + Section in `page.tsx`
+4. Add guard logic in `layout.tsx` if needed
+
+### `flow g section <path> [flags]`
+
+Creates a section folder with the files matching the section type.
+
+```bash
+# Interactive — prompts for each flag
+npx tsx tools/cli/index.ts g section app/bookings/new/_components/CreateBookingForm
+
+# Explicit flags
+npx tsx tools/cli/index.ts g section app/bookings/new/_components/CreateBookingForm --client --mutates
+```
+
+**Flags:**
+
+| Flag | What it adds |
+|------|-------------|
+| `--client` | `transition.ts`, `scene.ts`, `'use client'` on component |
+| `--fetches` | Server: `deps.ts`, `query.ts`, `tags.ts`. Client: `useXxxLoader.ts` + loader in `actions.ts` |
+| `--mutates` | `actions.ts` with mutation template |
+
+**What gets generated for `--client --mutates`:**
+
+| File | Contents |
+|------|----------|
+| `state.ts` | Four-state union: `idle`, `submitting`, `error`, `success` with `redirectTo` |
+| `transition.ts` | `switch (state.status)` with standard transitions |
+| `scene.ts` | `createScene(transition)` |
+| `fixtures.ts` | One fixture per state variant |
+| `actions.ts` | `'use server'` mutation accepting `FormData`, returning `{ success } \| { error }` |
+| `Component.tsx` | Three-hook pattern: `useScene` + `useFormValues` + `useRedirectOnSuccess`, `<form action={fn}>`, `defaultValue` on inputs |
+| `Component.stories.tsx` | Four stories with `shell: true` parameter |
+
+After running, fill in:
+1. Define actual state variants and domain data in `state.ts`
+2. Add domain-specific transitions in `transition.ts`
+3. Replace TODO redirects in `fixtures.ts`
+4. Implement validation and mutation in `actions.ts`
+5. Add form fields with `defaultValue={form.values.xxx}` in the component
+6. Wire `route.exits.*()` into the SUCCESS dispatch
+
+### Path conventions
+
+Routes live at the page level:
+```bash
+flow g route app/bookings/new          # ✓
+flow g route app/bookings/_components  # ✗ error
+```
+
+Sections live inside `_components/`:
+```bash
+flow g section app/bookings/new/_components/CreateBookingForm  # ✓
+flow g section app/bookings/new/CreateBookingForm              # ✗ error
+```
+
+---
+
+## Claude Code — slash commands
+
+Three slash commands available in Claude Code (CLI, desktop, web, IDE extensions). They call the CLI for boilerplate, then fill in the TODOs with real domain code.
+
+### `/scaffold-route <path>`
+
+Runs `flow g route`, then edits the generated files based on context:
+- Fills in the Zod schema from the URL structure
+- Wires exits by finding sibling routes
+- Composes the page with the right Shell and Section
 
 ```
 /scaffold-route app/bookings/new
 ```
 
-### What it creates
+### `/scaffold-section <description>`
 
-| File | Purpose |
-|------|---------|
-| `entry.ts` | Zod schema for URL params, `href()` builder, `parse()` function |
-| `contract.ts` | `createRoute({ entry, exits })` — wires this route to its neighbors |
-| `page.tsx` | Async server component that parses URL and composes shells + sections |
-
-### When to use
-
-- Adding a new page to an existing flow
-- Creating the first page of a new feature (follow with `/scaffold-section` for each section)
-
-### What it does NOT create
-
-- Sections, actions, or queries — use `/scaffold-section` for those
-- Layout guards — add manually if the route needs access control
-- Layout files — add manually for shared UI or guard logic
-
----
-
-## `/scaffold-section`
-
-Creates a complete section folder with all files for the given section type.
-
-### Usage
+Determines flags from the description, runs `flow g section`, then fills in all TODOs:
+- Writes real state variants with domain data
+- Implements the server action with validation and cache invalidation
+- Builds the form with actual fields, labels, and error handling
 
 ```
 /scaffold-section a form section for creating a booking, with service and date fields, at app/bookings/new/_components/CreateBookingForm
 ```
 
-### What it creates
+### `/scaffold-feature <description>`
 
-The command determines the section type from the description and creates only the files needed:
-
-| Type | Description | Files |
-|------|-------------|-------|
-| 1 | Server, no fetch | state.ts, fixtures.ts, Component.tsx |
-| 2 | Server, with fetch | + deps.ts, query.ts, tags.ts |
-| 3 | Server, with action | + actions.ts |
-| 4 | Client, no action | + transition.ts, scene.ts |
-| 5 | Client, with action | + transition.ts, scene.ts, actions.ts, stories |
-| 6 | Client, with loader | + transition.ts, scene.ts, useXxxLoader.ts, actions.ts |
-
-For form sections, the component automatically uses the three-hook pattern:
-
-```tsx
-const [state, send, reset] = scene.useScene(initialState)   // status lifecycle
-const form = useFormValues()                                  // input values + errors
-useRedirectOnSuccess(state, reset)                            // navigation after success
-```
-
-### When to use
-
-- Adding a new component that has state, data, errors, or loading
-- Any component beyond a simple primitive (`Button`, `Input`, `Badge`)
-
-### What it does NOT create
-
-- Route files — use `/scaffold-route` first if the page doesn't exist
-- Database schema — add tables to `db/schema/` manually
-- Shared cache tags — create `lib/<domain>/tags.ts` manually if multiple sections share tags
-
----
-
-## `/scaffold-feature`
-
-Orchestrates a complete feature from a plain-English description. Combines `/scaffold-route` and `/scaffold-section` patterns with data modeling, cache tags, layout guards, and stories.
-
-### Usage
+Orchestrates multiple route and section scaffolds for an entire feature:
+- Creates data model if needed
+- Sets up cache tags
+- Generates all routes with exits wired between them
+- Generates all sections with real domain logic
+- Adds layout guards if needed
 
 ```
-/scaffold-feature An appointment booking flow: a list page showing upcoming appointments, and a "new appointment" form page with service and date fields. After booking, redirect to the appointment detail page.
-```
-
-### What it creates
-
-Everything needed for the feature:
-
-1. **Data model** — new tables in `db/schema/` if needed
-2. **Cache tags** — shared `lib/<domain>/tags.ts` for the feature's entities
-3. **Routes** — `entry.ts` + `contract.ts` + `page.tsx` for each page, with exits wired between them
-4. **Sections** — complete section folders for each component, typed to the correct section type
-5. **Layout guards** — if any route needs access control
-6. **Stories** — `.stories.tsx` for every client section
-
-### When to use
-
-- Starting a new feature from scratch
-- When you can describe the feature in plain English and want all the plumbing generated
-
-### Verification checklist
-
-After the command runs, it verifies:
-
-```
-[ ] Every new URL has entry.ts + contract.ts + page.tsx
-[ ] Every non-primitive component has a section folder
-[ ] Every client section has transition.ts + scene.ts
-[ ] Every form section uses useFormValues + useRedirectOnSuccess
-[ ] Every action returns domain data (never calls redirect)
-[ ] Every navigation uses route.exits (no raw URL strings)
-[ ] Every fetchable section has query.ts + tags.ts
-[ ] Stories exist for every client section
-[ ] Cache tags are invalidated after mutations
+/scaffold-feature An appointment booking flow: a list page showing upcoming appointments, and a create form with service and date fields. After booking, redirect to the detail page.
 ```
 
 ---
 
-## For AI agents
+## When to use which
 
-When building features programmatically (e.g., an orchestrating agent delegates to Claude Code), use these commands as building blocks:
+| Situation | Command |
+|-----------|---------|
+| Want skeleton files to fill in manually | `flow g route` / `flow g section` |
+| Want AI to fill in domain logic | `/scaffold-route` / `/scaffold-section` |
+| Starting a feature from scratch with AI | `/scaffold-feature` |
+| Adding a page to an existing feature | `flow g route` or `/scaffold-route` |
+| Adding a component to an existing page | `flow g section` or `/scaffold-section` |
+| Non-interactive environment (CI, scripts) | `flow g` with explicit flags |
 
-```
-1. /scaffold-feature "description"     — full feature from scratch
-2. /scaffold-route path                — add a page to an existing feature
-3. /scaffold-section "description"     — add a component to an existing page
-```
-
-The commands encode all framework invariants: state machine shapes, form patterns, navigation rules, cache invalidation, action return types. An agent using these commands produces code that is structurally identical to hand-written code.
-
-### Key invariants the commands enforce
-
-- State is always a discriminated union on `status` — no ad-hoc shape
-- Input values live in `useFormValues`, never in scene state
-- Actions return domain data, never call `redirect()` or import routes
-- Navigation always uses `route.exits.*()` — no raw URL strings
-- Forms use `<form action={fn}>` with `defaultValue` — never `onSubmit`, never controlled inputs (unless cross-field validation)
-- Client boundary pushed to the smallest leaf that needs interactivity
+Both paths produce the same file structure and follow the same conventions. The CLI gives you control; the Claude commands give you speed.

@@ -1,6 +1,6 @@
 ---
 title: Schema Design
-order: 11
+order: 12
 category: Principles
 ---
 

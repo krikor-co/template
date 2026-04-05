@@ -140,7 +140,7 @@ import { useFormValues } from '@/lib/hooks/useFormValues'
 export function ${name}({ initialState }: { initialState: State }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
-  useRedirectOnSuccess(state, reset)
+  useRedirectOnSuccess(state, [reset, form.reset])
 
   const handleSubmit = async (formData: FormData) => {
     form.capture(formData)

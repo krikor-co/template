@@ -5,12 +5,16 @@ import { cookies, headers } from 'next/headers'
 import { db } from '@/db/drizzle'
 import { persons, users, sessions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
-import { verifyEmailOtp } from '@/lib/otp/email-otp'
+import { createEmailOtp, verifyEmailOtp } from '@/lib/otp/email-otp'
 import { createSessionToken } from '@/lib/auth/jwt'
 import { transitions, AUTH_RETURN_TO_COOKIE } from '@/app/auth/guards'
 import { createRateLimit, getClientIp } from '@/lib/rate-limit'
+import { Resend } from 'resend'
 
 const verifyLimit = createRateLimit({ action: 'verify_otp', max: 5, windowMs: 15 * 60 * 1000 })
+const resendLimit = createRateLimit({ action: 'resend_otp', max: 3, windowMs: 15 * 60 * 1000 })
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 const schema = z.object({
   email: z.string().email(),
@@ -74,6 +78,34 @@ export async function verifyOtpAction(
   cookieStore.set('auth_is_new', '', { path: '/', maxAge: 0 })
   cookieStore.set(AUTH_RETURN_TO_COOKIE, '', { path: '/', maxAge: 0 })
   await transitions.verify.grant()
+
+  return { success: true }
+}
+
+const resendSchema = z.object({
+  email: z.string().email(),
+})
+
+export async function resendOtpAction(
+  email: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const parsed = resendSchema.safeParse({ email })
+  if (!parsed.success) return { success: false, error: 'Invalid email.' }
+
+  const ip = await getClientIp()
+  const limit = await resendLimit.check(parsed.data.email, ip)
+  if (!limit.ok) return { success: false, error: limit.error }
+
+  const { code } = await createEmailOtp(parsed.data.email)
+
+  const { error } = await resend.emails.send({
+    from:    process.env.RESEND_FROM_EMAIL ?? 'noreply@verify.prolizz.com',
+    to:      parsed.data.email,
+    subject: 'Your login code',
+    html:    `<p>Your login code is <strong>${code}</strong>. It expires in 15 minutes.</p>`,
+  })
+
+  if (error) return { success: false, error: 'Failed to send code. Please try again.' }
 
   return { success: true }
 }

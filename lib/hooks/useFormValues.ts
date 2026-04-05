@@ -88,11 +88,17 @@ export function useFormValues(options?: UseFormValuesOptions) {
     [values, errors],
   )
 
+  const reset = useCallback(() => {
+    setValues({})
+    setErrors({})
+  }, [])
+
   return {
     values,
     errors,
     capture,
     setErrors,
     field,
+    reset,
   }
 }

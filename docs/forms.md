@@ -23,7 +23,7 @@ Every form section uses three hooks:
 ```tsx
 const [state, send, reset] = scene.useScene(initialState)   // status lifecycle
 const form = useFormValues()                                  // input values + errors + validation
-useRedirectOnSuccess(state, reset)                            // navigation after success
+useRedirectOnSuccess(state, [reset, form.reset])              // navigation after success
 ```
 
 Scene doesn't know forms exist. The form hook doesn't know scenes exist. The component coordinates them.
@@ -139,6 +139,18 @@ Show the top-level scene message only when there are no field errors — otherwi
 ### When errors clear
 
 On the next `capture()` call. New submission = fresh slate for both values and errors.
+
+### Clearing values on redirect
+
+`useRedirectOnSuccess` resets the scene state after `router.push`. But `form.values` is separate state — if you only reset the scene, captured form values survive. The Next.js Router Cache can reconcile (rather than remount) the component on a later visit, and `defaultValue={form.values.email}` would pre-fill the input with stale data.
+
+Fix: pass both reset functions to `useRedirectOnSuccess`:
+
+```tsx
+useRedirectOnSuccess(state, [reset, form.reset])
+```
+
+The hook accepts a single function or an array. All functions are called after the redirect fires. This ensures both scene status and form values are cleared before navigating away.
 
 ### Who owns what
 
@@ -269,6 +281,7 @@ form.errors                          // Record<string, string> — current field
 form.capture(formData)               // snapshot + validate all → boolean
 form.setErrors(errors)               // set server-returned field errors
 form.field(name, { validate? })      // returns input props: name, defaultValue, onBlur, onChange
+form.reset()                         // clear all values and errors
 ```
 
 ## Responsibility map
@@ -309,7 +322,7 @@ import { useFormValues } from '@/lib/hooks/useFormValues'
 export function LoginForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
-  useRedirectOnSuccess(state, reset)
+  useRedirectOnSuccess(state, [reset, form.reset])
 
   const handleSubmit = async (formData: FormData) => {
     form.capture(formData)

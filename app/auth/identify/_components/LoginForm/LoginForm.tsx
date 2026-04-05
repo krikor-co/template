@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/Label'
 export function LoginForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
-  useRedirectOnSuccess(state, reset)
+  useRedirectOnSuccess(state, [reset, form.reset])
 
   const handleSubmit = async (formData: FormData) => {
     form.capture(formData)

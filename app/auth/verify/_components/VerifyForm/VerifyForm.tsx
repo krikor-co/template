@@ -2,6 +2,7 @@
 
 import { scene } from './scene'
 import { verifyOtpAction } from './actions'
+import { useResendOtp } from './useResendOtp'
 import type { State } from './state'
 import { route } from '../../contract'
 import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
@@ -13,7 +14,8 @@ import { Label } from '@/components/ui/Label'
 export function VerifyForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
-  useRedirectOnSuccess(state, reset, 2000)
+  const resendOtp = useResendOtp(initialState.email)
+  useRedirectOnSuccess(state, [reset, form.reset], 2000)
 
   const handleSubmit = async (formData: FormData) => {
     form.capture(formData)
@@ -66,6 +68,31 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
               {state.status === 'submitting' ? 'Verifying…' : 'Verify code'}
             </Button>
           </form>
+
+          <div key="resend" className="text-center text-sm">
+            {resendOtp.status === 'waiting' && (
+              <p className="text-muted-foreground">Resend code in {resendOtp.secondsLeft}s</p>
+            )}
+            {resendOtp.status === 'ready' && (
+              <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
+                Resend code
+              </button>
+            )}
+            {resendOtp.status === 'sending' && (
+              <p className="text-muted-foreground">Sending…</p>
+            )}
+            {resendOtp.status === 'sent' && (
+              <p className="text-muted-foreground">Code sent!</p>
+            )}
+            {resendOtp.status === 'error' && (
+              <div className="space-y-1">
+                <p className="text-destructive">{resendOtp.error}</p>
+                <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
+                  Try again
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )
     case 'success':

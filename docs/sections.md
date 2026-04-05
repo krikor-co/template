@@ -439,7 +439,7 @@ State machine plus a mutation. `'use client'`, calls a server action, dispatches
 ```tsx
 const [state, send, reset] = scene.useScene(initialState)   // status lifecycle
 const form = useFormValues()                                  // input values + errors
-useRedirectOnSuccess(state, reset)                            // navigation after success
+useRedirectOnSuccess(state, [reset, form.reset])              // navigation after success
 ```
 
 ```
