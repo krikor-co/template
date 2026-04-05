@@ -14,6 +14,8 @@ RouteRegistry  →  navigation (typed URLs, typed exits)
 CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 ```
 
+**The `docs/` directory is a living documentation site served at `/docs`.** It ships with the template and is meant to be updated as the application evolves — add domain-specific patterns, conventions, and decisions. When adding new framework-level patterns or changing existing ones, update the relevant doc file.
+
 **For depth on any concept, read the relevant doc file in `docs/`:**
 
 | Doc | What it covers |

@@ -102,7 +102,9 @@ e2e/                        Playwright tests
 
 ## Documentation
 
-Run `npm run dev` and visit [localhost:3000/docs](http://localhost:3000/docs) for the full documentation, or read the markdown files in `docs/`:
+The `docs/` directory contains markdown files that are rendered as a browsable documentation site at `/docs`. This documentation ships with the template and is designed to grow with your application — update it as you add domain-specific patterns, conventions, or architectural decisions unique to your project.
+
+Run `npm run dev` and visit [localhost:3000/docs](http://localhost:3000/docs), or read the markdown files directly:
 
 | Doc | Topic |
 |-----|-------|

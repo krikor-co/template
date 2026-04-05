@@ -10,6 +10,8 @@ A Next.js project template with one opinion: **every component is either a primi
 
 This template gives you a hierarchy, four registries, and a set of conventions that remove ambiguity from frontend architecture. You don't decide where state lives, how navigation works, or how to invalidate cache — the framework answers those questions once.
 
+These docs ship with the template and are served at `/docs` in your running application. They're yours — as you build on the template, update them to reflect your domain-specific patterns, conventions, and decisions. The docs grow with your application, serving both as onboarding material and as a living reference for your team.
+
 ---
 
 ## The hierarchy
