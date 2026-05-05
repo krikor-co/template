@@ -60,6 +60,7 @@ Section flags: `--client` (needs interactivity), `--fetches` (loads data), `--mu
 /scaffold-route app/bookings/new
 /scaffold-section a form for creating bookings with service and date fields
 /scaffold-feature an appointment booking flow with list and create pages
+/design-flow — plan a feature as a visual flow diagram before implementation
 ```
 
 Claude commands call the CLI for boilerplate, then fill in domain logic.
@@ -122,3 +123,4 @@ Run `npm run dev` and visit [localhost:3000/docs](http://localhost:3000/docs), o
 | [Schema](docs/schema.md) | Entity-first database modeling |
 | [Rate Limiting](docs/rate-limiting.md) | Database-backed rate limiter |
 | [Storybook](docs/storybook.md) | Story patterns and shell decorator |
+| [Planning](docs/planning.md) | Design-flow specs and feature planning |

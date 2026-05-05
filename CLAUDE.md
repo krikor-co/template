@@ -34,12 +34,14 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`forms.md`](docs/forms.md) | useFormValues, value persistence, validation, controlled vs uncontrolled |
 | [`schema.md`](docs/schema.md) | Entity-first database modeling |
 | [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
+| [`planning.md`](docs/planning.md) | Design flow specs, planning process, implementation handoff |
 
 ---
 
 ## New feature checklist
 
 ```
+□ Planning a feature?         → /design-flow → .claude/specs/<name>.md
 □ New URL/page?               → entry.ts + contract.ts + page.tsx
 □ Non-primitive UI component? → section folder (state.ts + fixtures.ts + Component.tsx minimum)
 □ Component fetches?          → add deps.ts + query.ts + tags.ts
@@ -121,6 +123,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 ## Available skills
 
 ```
+/design-flow       — collaborative spec-writing session for planning features as visual flow diagrams
 /scaffold-route    — creates entry.ts + contract.ts + page.tsx
 /scaffold-section  — creates a complete section folder
 /scaffold-feature  — builds a complete feature from a plain-English description
