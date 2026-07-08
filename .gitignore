@@ -42,3 +42,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# browser-verification auth state (holds a LIVE session token — never commit)
+/.auth/
+
+# Playwright MCP scratch (console/page dumps)
+.playwright-mcp/
+
+# QA / browser-verify throwaway artifacts (root only)
+/*.png
+playwright_*/
+playwright-artifacts-*/
