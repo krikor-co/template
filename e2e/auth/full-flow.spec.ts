@@ -48,7 +48,7 @@ test.describe.serial('auth happy paths', () => {
     await page.goto('/auth/identify?returnTo=%2Fdashboard%2Freturn-test')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1100)
-    await page.fill('input[name="email"]', email)
+    await page.fill('input[name="identifier"]', email)
     await page.click('button[type="submit"]')
     await page.waitForURL('**/auth/verify', { timeout: 10_000 })
 
