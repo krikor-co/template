@@ -141,6 +141,66 @@
   }
 }
 
+/* ── Design system: micro-labels ──────────────────────────
+   Uppercase, letter-spaced micro-label — the section-kicker idiom
+   (`RECENTLY ADDED`, `:: OVERVIEW`). Use directly on a span/h2.
+   In @layer components so Tailwind text-* utilities (utilities layer) can
+   OVERRIDE the default color — e.g. `label-micro text-current` on a solid
+   tile renders the tile's foreground, not the muted gray. NOTE: @layer
+   components classes are tree-shaken; this only ships once source uses it. */
+@layer components {
+  .label-micro {
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+}
+
+/* ── Display typography (scoped opt-ins) ───────────────────
+   The app is single-font everywhere EXCEPT surfaces that opt into these two
+   classes (hero/greeting display + kicker). Both resolve through the
+   `--font-display` / `--font-kicker` tokens, which alias the app font by
+   default — load real display fonts in app/layout.tsx and repoint the
+   variables to swap the look (docs/design-tokens.md "Swapping the palette"). */
+.display-text {
+  font-family: var(--font-display), 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.04;
+  font-optical-sizing: auto;
+}
+.kicker-text {
+  font-family: var(--font-kicker), ui-monospace, 'SF Mono', Menlo, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+/* ── Tone surfaces (one-class soft tile: bg + ink + hairline ring) ─────────
+   Convenience for color-blocked tiles. Compose the Tailwind `tone-*` tokens
+   directly when you need finer control. Defined as plain CSS (not @layer) so
+   they survive purge regardless of how class names are built. */
+.tone-surface-urgent    { background-color: hsl(var(--tone-urgent-soft));    color: hsl(var(--tone-urgent-deep));    border-color: hsl(var(--tone-urgent) / 0.20); }
+.tone-surface-attention { background-color: hsl(var(--tone-attention-soft)); color: hsl(var(--tone-attention-deep)); border-color: hsl(var(--tone-attention) / 0.22); }
+.tone-surface-positive  { background-color: hsl(var(--tone-positive-soft));  color: hsl(var(--tone-positive-deep));  border-color: hsl(var(--tone-positive) / 0.20); }
+.tone-surface-neutral   { background-color: hsl(var(--tone-neutral-soft));   color: hsl(var(--tone-neutral-deep));   border-color: hsl(var(--border)); }
+.tone-surface-info      { background-color: hsl(var(--tone-info-soft));      color: hsl(var(--tone-info-deep));      border-color: hsl(var(--tone-info) / 0.22); }
+
+/* ── OTP segmented-input active caret ─────────────────── */
+@keyframes otp-caret-blink {
+  0%, 70%, 100% { opacity: 1; }
+  20%, 50%      { opacity: 0; }
+}
+.otp-caret { animation: otp-caret-blink 1s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .otp-caret { animation: none; }
+}
+
 /* ── rehype-pretty-code ────────────────────────────────── */
 
 /* Dual-theme: apply light/dark CSS variables from shiki */
