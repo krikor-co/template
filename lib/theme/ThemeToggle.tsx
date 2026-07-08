@@ -55,6 +55,7 @@ export function ThemeToggle({
 
   // Placeholder until mounted so SSR markup matches (theme is client-only).
   // No theme writes happen here — next-themes already applied the class pre-paint.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical next-themes hydration mount-guard; the setState runs exactly once post-mount and cannot cascade
   useEffect(() => setMounted(true), [])
 
   if (!mounted) {
