@@ -158,6 +158,14 @@ The Claude commands call the CLI internally, then fill in the TODOs with real co
 □ Navigates on success?       → route.exits.*() — never raw URL strings
 ```
 
+### Unit tests
+
+Vitest runs any co-located `*.test.ts` file (`npm test`, `npm run test:watch`).
+The suffixes are split so the two runners never collect each other's suites:
+`.test.ts` = vitest (unit, colocated next to the source file), `.spec.ts` =
+Playwright (e2e, under `e2e/`). Example: `db/schema/schema-invariants.test.ts`
+guards the schema conventions from [Schema](schema).
+
 ---
 
 ## Reading order

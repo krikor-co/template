@@ -98,7 +98,7 @@ Every table follows these conventions:
 
 **Primary keys**: auto-increment integers — `integer('id').primaryKey().generatedAlwaysAsIdentity()`
 
-**Timestamps**: every table has `createdAt`. Add `updatedAt` when the table's rows are mutable (edited after creation).
+**Timestamps**: always `timestamp(..., { withTimezone: true })` (Postgres `timestamptz`) — a naive `timestamp` silently drops the timezone and breaks when the server TZ changes. This is enforced by `db/schema/schema-invariants.test.ts`, which fails the unit-test run for any naive timestamp column. Every table has `createdAt`. Add `updatedAt` when the table's rows are mutable (edited after creation).
 
 **Soft deletes** (opt-in): add `deletedAt` when the domain requires recoverability or audit trails. Start without it — add it when the need arises.
 
@@ -107,28 +107,28 @@ Every table follows these conventions:
 export const things = pgTable('things', {
   id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
   // ... domain columns ...
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 // With updatedAt — rows are edited after creation
 export const editableThings = pgTable('editable_things', {
   id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
   // ... domain columns ...
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 // With soft deletes — domain requires recoverability
 export const recoverableThings = pgTable('recoverable_things', {
   id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
   // ... domain columns ...
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  deletedAt: timestamp('deleted_at'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 })
 ```
 
-The template starts simple — `persons`, `users`, and `sessions` use only `createdAt`. Add `updatedAt` and `deletedAt` as complexity demands it.
+The template's auth tables carry `createdAt` + `updatedAt`; `users` additionally has `deletedAt` (soft delete) and a `role` column on the `platform_role` enum (`user | admin`) for platform-level admin access. `users.personId` is unique — one auth account per person.
 
 **Foreign keys reference roles, not base entities** — domain tables reference the role that is relevant to the domain:
 
@@ -150,3 +150,36 @@ The template starts with `persons` + `users`. Every new project adds role tables
 `users` → the auth role (can log in, has a session)
 
 Other roles (`customers`, `professionals`, etc.) are created per-project via `/scaffold-feature`.
+
+The template also ships `audit_log` — a generic audit trail (`workspaceId`,
+`userId`, `action`, `entityType`/`entityId`, jsonb `details`, `ipAddress`/
+`userAgent`, `createdAt`). Write a row from any action whose effect you may
+need to explain later (role changes, destructive mutations, AI-confirmed
+operations). `workspaceId` is nullable: platform-level actions have no
+workspace scope.
+
+---
+
+## Migrations
+
+The template keeps a **single baseline migration** in `drizzle/`
+(`0000_baseline.sql` + `meta/`). While the schema is still template-owned,
+schema changes **regenerate the baseline** instead of appending a chain
+(`--name baseline` pins the deterministic filename):
+
+```bash
+rm -rf drizzle
+npx drizzle-kit generate --name baseline
+```
+
+Reset dev databases after regenerating (`npm run db:push` against a scratch
+DB, or drop and recreate). Once an app built on the template has a real
+deployed database, freeze the baseline and let `drizzle-kit generate` append
+numbered migrations from then on.
+
+Deploys run `scripts/migrate.mjs` (the `build` script is
+`node scripts/migrate.mjs && next build`): a forward-only, idempotent runner
+that applies any `drizzle/*.sql` not yet recorded in its `_migrations`
+bookkeeping table, in filename order, one transaction per file. If
+`DATABASE_URL` is unset the runner warns and exits 0 so the build continues.
+`npm run db:deploy` keeps the plain `drizzle-kit migrate` path for manual use.
