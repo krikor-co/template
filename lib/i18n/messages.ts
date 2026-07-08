@@ -63,6 +63,45 @@ const en = {
       sent:         'Code sent!',
     },
   },
+  workspaces: {
+    kicker:  'Welcome',
+    heading: 'Your workspaces',
+    pick:    'Choose a workspace to continue.',
+    none:    'You are not part of any workspace yet.',
+  },
+  invite: {
+    title:          'Invitation',
+    nameRequired:   'Please enter your name to accept.',
+    nameLabel:      'Your name',
+    acceptingAs:    (name: string) => `You'll join as ${name}.`,
+    confirmHeading: (workspace: string, role: string) => `Accept invite to ${workspace} as ${role}`,
+    confirmBody:    'Accepting will add you to this workspace with the role above.',
+    accept:         'Accept invite',
+    accepting:      'Accepting…',
+    roles: {
+      owner:  'owner',
+      member: 'member',
+    },
+    error: {
+      notFound: 'This invitation could not be found.',
+      expired:  'This invitation has expired.',
+      used:     'This invitation has already been accepted.',
+      revoked:  'This invitation has been revoked.',
+      generic:  'This invitation is no longer valid.',
+      goHome:   'Go to dashboard',
+    },
+    email: {
+      subject:  (workspace: string) => `You're invited to join ${workspace}`,
+      greeting: 'Hello,',
+      body:     (workspace: string, role: string) => `You have been invited to join ${workspace} as ${role}.`,
+      cta:      'Accept invitation',
+      ignore:   'If you did not expect this, you can ignore this email.',
+    },
+    errors: {
+      accept:   'Failed to accept invite.',
+      notFound: 'Invite not found.',
+    },
+  },
 }
 
 export type Messages = typeof en
@@ -117,6 +156,45 @@ const ptBR: Messages = {
       resend:       'Reenviar código',
       sending:      'Enviando…',
       sent:         'Código enviado!',
+    },
+  },
+  workspaces: {
+    kicker:  'Bem-vindo',
+    heading: 'Seus workspaces',
+    pick:    'Escolha um workspace para continuar.',
+    none:    'Você ainda não faz parte de nenhum workspace.',
+  },
+  invite: {
+    title:          'Convite',
+    nameRequired:   'Informe seu nome para aceitar.',
+    nameLabel:      'Seu nome',
+    acceptingAs:    (name: string) => `Você entrará como ${name}.`,
+    confirmHeading: (workspace: string, role: string) => `Aceitar convite para ${workspace} como ${role}`,
+    confirmBody:    'Ao aceitar, você entrará neste workspace com a função acima.',
+    accept:         'Aceitar convite',
+    accepting:      'Aceitando…',
+    roles: {
+      owner:  'proprietário',
+      member: 'membro',
+    },
+    error: {
+      notFound: 'Este convite não foi encontrado.',
+      expired:  'Este convite expirou.',
+      used:     'Este convite já foi aceito.',
+      revoked:  'Este convite foi revogado.',
+      generic:  'Este convite não é mais válido.',
+      goHome:   'Ir para o painel',
+    },
+    email: {
+      subject:  (workspace: string) => `Você foi convidado para ${workspace}`,
+      greeting: 'Olá,',
+      body:     (workspace: string, role: string) => `Você foi convidado para entrar em ${workspace} como ${role}.`,
+      cta:      'Aceitar convite',
+      ignore:   'Se você não esperava este e-mail, pode ignorá-lo.',
+    },
+    errors: {
+      accept:   'Não foi possível aceitar o convite.',
+      notFound: 'Convite não encontrado.',
     },
   },
 }
