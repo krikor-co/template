@@ -1,12 +1,13 @@
 CREATE TYPE "public"."platform_role" AS ENUM('user', 'admin');--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "persons" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "persons_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"email" text NOT NULL,
+	"email" text,
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"phone_number" text,
 	"name" text,
 	"locale" text DEFAULT 'en' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "persons_email_unique" UNIQUE("email")
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "users" (
@@ -96,6 +97,8 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "persons_email_unique" ON "persons" USING btree ("email") WHERE "persons"."email" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "persons_phone_unique" ON "persons" USING btree ("phone_number") WHERE "persons"."phone_number" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "otp_codes_email_idx" ON "otp_codes" USING btree ("email");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "otp_codes_expires_at_idx" ON "otp_codes" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "rate_limits_key_action_idx" ON "rate_limits" USING btree ("key","action");--> statement-breakpoint

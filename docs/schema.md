@@ -100,6 +100,22 @@ Every table follows these conventions:
 
 **Timestamps**: always `timestamp(..., { withTimezone: true })` (Postgres `timestamptz`) — a naive `timestamp` silently drops the timezone and breaks when the server TZ changes. This is enforced by `db/schema/schema-invariants.test.ts`, which fails the unit-test run for any naive timestamp column. Every table has `createdAt`. Add `updatedAt` when the table's rows are mutable (edited after creation).
 
+**Optional natural keys — partial unique indexes**: when a natural key is
+nullable (a person may have an email OR a phone number), don't use a plain
+`.unique()` — declare a partial unique index so the constraint reads as
+intended, stays small, and the "NULL means absent, not duplicate" contract
+is explicit:
+
+```typescript
+(t) => ({
+  emailUnique: uniqueIndex('persons_email_unique').on(t.email).where(sql`${t.email} IS NOT NULL`),
+  phoneUnique: uniqueIndex('persons_phone_unique').on(t.phoneNumber).where(sql`${t.phoneNumber} IS NOT NULL`),
+})
+```
+
+The template's `persons` table uses this for `email` + `phone_number`
+(dual-identifier auth: either may be absent, each must be unique when set).
+
 **Soft deletes** (opt-in): add `deletedAt` when the domain requires recoverability or audit trails. Start without it — add it when the need arises.
 
 ```typescript
