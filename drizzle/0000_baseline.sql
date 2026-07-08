@@ -62,6 +62,21 @@ CREATE TABLE IF NOT EXISTS "audit_log" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "trace_span" (
+	"span_id" text PRIMARY KEY NOT NULL,
+	"trace_id" text NOT NULL,
+	"parent_span_id" text,
+	"name" text NOT NULL,
+	"start_ts" timestamp with time zone NOT NULL,
+	"duration_ms" integer NOT NULL,
+	"status" text NOT NULL,
+	"attributes" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"error_message" text,
+	"workspace_id" integer,
+	"user_id" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "users" ADD CONSTRAINT "users_person_id_persons_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."persons"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
@@ -82,4 +97,9 @@ END $$;
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "otp_codes_email_idx" ON "otp_codes" USING btree ("email");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "otp_codes_expires_at_idx" ON "otp_codes" USING btree ("expires_at");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "rate_limits_key_action_idx" ON "rate_limits" USING btree ("key","action");
+CREATE INDEX IF NOT EXISTS "rate_limits_key_action_idx" ON "rate_limits" USING btree ("key","action");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "trace_span_created_at_idx" ON "trace_span" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "trace_span_workspace_created_at_idx" ON "trace_span" USING btree ("workspace_id","created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "trace_span_name_created_at_idx" ON "trace_span" USING btree ("name","created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "trace_span_user_created_at_idx" ON "trace_span" USING btree ("user_id","created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "trace_span_trace_id_idx" ON "trace_span" USING btree ("trace_id");
