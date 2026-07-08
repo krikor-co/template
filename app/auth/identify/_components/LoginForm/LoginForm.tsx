@@ -38,7 +38,7 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
           <form key="form" action={handleSubmit} className="space-y-4">
             {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <div className="space-y-2">
-              <Label htmlFor="email">{m.auth.identify.emailLabel}</Label>
+              <Label htmlFor="email">{m.auth.identify.identifierLabel}</Label>
               <Input
                 key="email"
                 id="email"
@@ -50,7 +50,7 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
                 onChange={() => {
                   if (state.status === 'error') send({ type: 'RETRY' })
                 }}
-                placeholder={m.auth.identify.emailPlaceholder}
+                placeholder={m.auth.identify.identifierPlaceholder}
               />
             </div>
 
@@ -73,8 +73,8 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
           </div>
           <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
-              <Label htmlFor="email">{m.auth.identify.emailLabel}</Label>
-              <Input key="email" id="email" name="email" type="email" disabled defaultValue={form.values.email} placeholder={m.auth.identify.emailPlaceholder} />
+              <Label htmlFor="email">{m.auth.identify.identifierLabel}</Label>
+              <Input key="email" id="email" name="email" type="email" disabled defaultValue={form.values.email} placeholder={m.auth.identify.identifierPlaceholder} />
             </div>
 
             <p className="text-sm text-muted-foreground">{m.common.redirecting}</p>

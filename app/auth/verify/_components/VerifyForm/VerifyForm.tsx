@@ -34,9 +34,9 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
       return (
         <div key="verify" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.verify.title}</h1>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.verify.titleEmail}</h1>
             <p className="text-muted-foreground">
-              {m.auth.verify.subtitleBefore} <strong>{state.email}</strong>
+              {m.auth.verify.sentTo} <strong>{state.email}</strong>
             </p>
           </div>
           <form key="form" action={handleSubmit} className="space-y-4">
@@ -73,7 +73,7 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
 
           <div key="resend" className="text-center text-sm">
             {resendOtp.status === 'waiting' && (
-              <p className="text-muted-foreground">{m.auth.verify.resendWait(resendOtp.secondsLeft)}</p>
+              <p className="text-muted-foreground">{m.auth.verify.resendIn(resendOtp.secondsLeft)}</p>
             )}
             {resendOtp.status === 'ready' && (
               <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
@@ -81,10 +81,10 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
               </button>
             )}
             {resendOtp.status === 'sending' && (
-              <p className="text-muted-foreground">{m.auth.verify.resendSending}</p>
+              <p className="text-muted-foreground">{m.auth.verify.sending}</p>
             )}
             {resendOtp.status === 'sent' && (
-              <p className="text-muted-foreground">{m.auth.verify.resendSent}</p>
+              <p className="text-muted-foreground">{m.auth.verify.sent}</p>
             )}
             {resendOtp.status === 'error' && (
               <div className="space-y-1">
@@ -101,9 +101,9 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
       return (
         <div key="verify" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.verify.title}</h1>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.verify.titleEmail}</h1>
             <p className="text-muted-foreground">
-              {m.auth.verify.subtitleBefore} <strong>{state.email}</strong>
+              {m.auth.verify.sentTo} <strong>{state.email}</strong>
             </p>
           </div>
           <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
@@ -121,7 +121,7 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
               />
             </div>
 
-            <p className="text-sm text-muted-foreground">{m.auth.verify.success}</p>
+            <p className="text-sm text-muted-foreground">{m.auth.verify.successHint}</p>
 
             <Button key="submit" type="button" disabled>
               {m.common.redirecting}
