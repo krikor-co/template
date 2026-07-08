@@ -27,7 +27,7 @@ export async function tracedAction<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   // Attribute to the acting user (fail-open; request-cached, so ~free).
-  let userId: string | undefined
+  let userId: number | undefined
   try { userId = (await getSession())?.userId } catch { /* unauthenticated — unattributed */ }
 
   const exit = await Effect.runPromiseExit(

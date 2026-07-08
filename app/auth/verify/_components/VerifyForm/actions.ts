@@ -55,7 +55,7 @@ export async function verifyOtpAction(
     user = created
   }
 
-  const token = await createSessionToken({ userId: String(user.id), email: person.email })
+  const token = await createSessionToken({ userId: user.id })
 
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 30)

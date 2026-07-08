@@ -71,7 +71,7 @@ export async function runAction<A, E extends TaggedAppError>(
     // Attribute the boundary span to the acting user (fail-open; absent outside a
     // request context such as cron). getSession is request-cached, so this is free
     // when the action already read the session. Powers per-user span attribution in trace_span.
-    let userId: string | undefined
+    let userId: number | undefined
     try { userId = (await getSession())?.userId } catch { /* unauthenticated context — leave unattributed */ }
     // actor marks AI-initiated work (an assistant confirm path) so traces can
     // distinguish it from a direct human action by the same user.

@@ -48,7 +48,7 @@ export const getCurrentLocale = cache(async (): Promise<Locale> => {
     .select({ locale: persons.locale })
     .from(users)
     .innerJoin(persons, eq(persons.id, users.personId))
-    .where(eq(users.id, Number(session.userId)))
+    .where(eq(users.id, session.userId))
     .limit(1)
 
   return normalizeLocale(row?.locale)
