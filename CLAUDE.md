@@ -28,6 +28,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`caching.md`](docs/caching.md) | CacheRegistry, tags, invalidation patterns |
 | [`guards.md`](docs/guards.md) | Layout guards, transition guards, cookie returnTo |
 | [`rate-limiting.md`](docs/rate-limiting.md) | createRateLimit, key strategy, storage |
+| [`i18n.md`](docs/i18n.md) | Locale resolution chain, `t(locale)` messages, Intl formatters, timezone + theme providers |
 | [`storybook.md`](docs/storybook.md) | Story patterns, co-location, running |
 | [`design-tokens.md`](docs/design-tokens.md) | Accent triads, tone scale, typography/radius/shadow tokens, palette swap procedure |
 | [`data-flow.md`](docs/data-flow.md) | Load/mutation/client-fetch, Effect boundary (runAction/runQuery), worked examples |
