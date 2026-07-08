@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { resendOtpAction } from './actions'
+import type { IdentifierType } from '@/lib/auth/identifier'
 
 type ResendStatus = 'waiting' | 'ready' | 'sending' | 'sent' | 'error'
 
-export function useResendOtp(email: string, cooldownSeconds = 30) {
+export function useResendOtp(identifier: string, identifierType: IdentifierType, cooldownSeconds = 30) {
   const [status, setStatus] = useState<ResendStatus>('waiting')
   const [secondsLeft, setSecondsLeft] = useState(cooldownSeconds)
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +47,7 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
   const resend = useCallback(async () => {
     setStatus('sending')
     setError(null)
-    const result = await resendOtpAction(email)
+    const result = await resendOtpAction(identifier, identifierType)
     if (result.success) {
       setStatus('sent')
       sentTimeoutRef.current = setTimeout(() => {
@@ -57,7 +58,7 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
       setError(result.error)
       setStatus('error')
     }
-  }, [email, cooldownSeconds])
+  }, [identifier, identifierType, cooldownSeconds])
 
   return { status, secondsLeft, error, resend }
 }

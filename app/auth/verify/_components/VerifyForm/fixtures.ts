@@ -2,8 +2,9 @@ import type { State } from './state'
 import { route } from '../../contract'
 
 export const fixtures = {
-  idle:       { status: 'idle',       email: 'user@example.com' }                                          satisfies State,
-  submitting: { status: 'submitting', email: 'user@example.com' }                                          satisfies State,
-  error:      { status: 'error',      email: 'user@example.com', message: 'Invalid or expired code.' }     satisfies State,
-  success:    { status: 'success',    email: 'user@example.com', redirectTo: route.exits.dashboard() }      satisfies State,
+  idle:       { status: 'idle',       identifier: 'user@example.com', identifierType: 'email' }                                          satisfies State,
+  idlePhone:  { status: 'idle',       identifier: '+15550000000',     identifierType: 'phone' }                                          satisfies State,
+  submitting: { status: 'submitting', identifier: 'user@example.com', identifierType: 'email' }                                          satisfies State,
+  error:      { status: 'error',      identifier: 'user@example.com', identifierType: 'email', message: 'Invalid or expired code.' }     satisfies State,
+  success:    { status: 'success',    identifier: 'user@example.com', identifierType: 'email', redirectTo: route.exits.dashboard() }      satisfies State,
 }
