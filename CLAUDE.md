@@ -30,7 +30,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`rate-limiting.md`](docs/rate-limiting.md) | createRateLimit, key strategy, storage |
 | [`storybook.md`](docs/storybook.md) | Story patterns, co-location, running |
 | [`design-tokens.md`](docs/design-tokens.md) | Accent triads, tone scale, typography/radius/shadow tokens, palette swap procedure |
-| [`data-flow.md`](docs/data-flow.md) | Load/mutation/client-fetch + worked example |
+| [`data-flow.md`](docs/data-flow.md) | Load/mutation/client-fetch, Effect boundary (runAction/runQuery), worked examples |
 | [`declarative-flows.md`](docs/declarative-flows.md) | Action-first design, state machines |
 | [`forms.md`](docs/forms.md) | useFormValues, value persistence, validation, controlled vs uncontrolled |
 | [`schema.md`](docs/schema.md) | Entity-first database modeling |
@@ -45,8 +45,8 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 □ Planning a feature?         → /design-flow → .claude/specs/<name>.md
 □ New URL/page?               → entry.ts + contract.ts + page.tsx
 □ Non-primitive UI component? → section folder (state.ts + fixtures.ts + Component.tsx minimum)
-□ Component fetches?          → add deps.ts + query.ts + tags.ts
-□ Component mutates?          → add actions.ts with 'use server'
+□ Component fetches?          → add deps.ts + query.ts + tags.ts (cached query body wraps in `runQuery(pipe(...))`)
+□ Component mutates?          → add actions.ts with 'use server' (action body wraps in `runAction(pipe(...))`)
 □ Client interactivity?       → add transition.ts + scene.ts, mark 'use client'
 □ Client section that fetches?→ add useXxxLoader.ts + server action loader in actions.ts
 □ Section has a `<form>`?     → add useFormValues(), capture in handleSubmit, defaultValue on inputs
@@ -93,6 +93,22 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 - Layouts never use `searchParams` — flow metadata (like `returnTo`) travels via cookies
 - Use `createTransitionGuard` from `lib/transition.ts` when exit animations must play before a layout redirect
 
+**Effect (server actions + cached queries)**
+- Every server action body is `runAction(pipe(...), { actionName, attributes: { workspaceId, ... } })` — `lib/effect/run-action.ts`
+- Every `'use cache'` body is `runQuery(pipe(...), { queryName, attributes })` after `tagWith` + `withCacheProfile` — `lib/effect/run-query.ts`
+- **No `Effect.gen`** — pure pipe + `Effect.Do` only. The whole codebase is one paradigm
+- `T | undefined` narrowing → `Effect.flatMap` with explicit null check. **`filterOrFail` does NOT narrow**
+- Auth inside the pipe → `requireSessionE()` / `requireAdminE()` / `requireWorkspaceRoleE(workspaceId, role)` (typed) — `lib/effect/auth.ts`
+- DB calls → `dbE.try` / `dbE.findFirst` / `dbE.run` / `dbE.transaction` — `lib/effect/db.ts`. Transaction callback STAYS plain async; throw inside to roll back
+- Cache invalidation → `cacheE.invalidate(Tag.X(...))` — `lib/effect/cache.ts`
+- Validation → `validate(zodSchema, raw)` returns `Effect<T, ValidationFailed>` — `lib/effect/validate.ts`
+- ID parsing → `parseIdE(raw, 'workspaceId')` from `lib/effect/parse.ts`. Never throw inside a pipe
+- Boundary error mapping → `mapResult(result, { fallback, conflict, custom, ... })` from `lib/effect/boundary.ts` — replaces the per-action `switch (result.kind)` boilerplate
+- Sentinel markers (for `ConflictError.message` routing) → add to and import from `lib/effect/markers.ts::Markers`. Never invent local marker constants
+- Failures are tagged errors (`Forbidden | Unauthenticated | NotFound | ValidationFailed | RateLimited | Conflict | ExternalServiceError | DbError | Timeout | SubscriptionInactive` from `lib/effect/errors.ts`) — never untyped catches
+- Default boundary timeout is 30s; tighten via `timeout: '5 seconds'` in opts. Always `Effect.timeoutFail` (typed), never plain `Effect.timeout`
+- See [`docs/data-flow.md`](docs/data-flow.md) "Server actions and cached queries with Effect" for the full pattern + worked example
+
 ---
 
 ## Quick decision guide
@@ -118,6 +134,10 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | Need hook logic in a component | Extract to `useXxx.ts` — never inline in component |
 | Route needs access control | Layout guard — redirect in layout, guard fn in feature layer |
 | Action triggers animation before redirect | Transition guard — `grant()` in action, `isActive()` in layout |
+| Writing a new server action | `runAction(pipe(Effect.Do, ...), { actionName, attributes: { workspaceId } })` |
+| Writing a new cached query | `'use cache'` + `tagWith` + `withCacheProfile` + `return runQuery(pipe(...), { queryName, attributes })` |
+| Action needs to fail with a domain error | `Effect.fail(new NotFound({ entity: 'person', id }))` from `lib/effect/errors.ts` |
+| DB transaction with multiple writes | `dbE.transaction(async (tx) => { ... throw to rollback })` — keep callback plain async |
 
 ---
 

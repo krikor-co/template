@@ -56,3 +56,45 @@ Rate limits are stored in the `rate_limits` database table with a compound index
 ## Return type
 
 `.check()` returns `{ ok: true }` or `{ ok: false, error: string }` — fits the existing action result pattern with no UI changes needed.
+
+---
+
+## Inside an Effect pipe
+
+Effect-flavoured server actions bridge the throw-based `limiter.check()` call into a typed `RateLimited` failure (see [`lib/effect/errors.ts`](../lib/effect/errors.ts) → `RateLimited`). Wrap the check with `dbE.try(...)`, then `Effect.flatMap` to narrow `{ ok: false }` into `Effect.fail(new RateLimited(...))`:
+
+```typescript
+import { Effect, pipe } from 'effect'
+import { dbE } from '@/lib/effect/db'
+import { RateLimited } from '@/lib/effect/errors'
+
+const sendOtpE = (raw: unknown) => pipe(
+  Effect.Do,
+  Effect.bind('input', () => validate(InputSchema, raw)),
+  Effect.bind('ip',    () => Effect.promise(() => getClientIp())),
+
+  // Bridge the throw-based limiter.check() into a typed RateLimited failure.
+  Effect.tap(({ input, ip }) => pipe(
+    dbE.try(() => sendOtpLimit.check(input.email, ip)),
+    Effect.flatMap((res) => res.ok
+      ? Effect.succeed(undefined)
+      : Effect.fail(new RateLimited({ message: res.error })),
+    ),
+  )),
+
+  // ... rest of the pipe
+)
+```
+
+Place the limiter check **after** `validate` (and after any auth guard) and **before** any expensive read or DB write — same ordering rule as the legacy pattern.
+
+At the boundary, `runAction` maps the failure to `{ success: false, kind: 'RateLimited', error: <message> }`. With `mapResult`, omit the `rateLimit` copy key to pass the limiter's own user-facing message through:
+
+```typescript
+return mapResult(result, {
+  fallback: 'Could not send the code. Please try again.',
+  // no `rateLimit:` — limit.error ("Too many attempts...") flows through verbatim
+})
+```
+
+For the full Effect mutation pattern (typed-error union, `runAction` envelope, span/timeout defaults), see [`data-flow.md` → "Server actions and cached queries with Effect"](data-flow.md#server-actions-and-cached-queries-with-effect).
