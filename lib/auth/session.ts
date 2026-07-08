@@ -44,6 +44,19 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
 })
 
 /**
+ * Sentinel error thrown by `requireSession` when no valid session exists.
+ * Layouts catch this (or check `getSession()` directly) and redirect to
+ * `/auth/identify`; Effect code uses `requireSessionE` (lib/effect/auth.ts)
+ * which maps it to the typed `Unauthenticated` error.
+ */
+export class SessionGuardError extends Error {
+  constructor(public readonly reason: 'unauthenticated' | 'forbidden') {
+    super(reason)
+    this.name = 'SessionGuardError'
+  }
+}
+
+/**
  * Asserts that a valid session exists. Use in server actions and queries
  * that run behind an authenticated layout guard.
  *
@@ -52,6 +65,6 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
  */
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession()
-  if (!session) throw new Error('Unauthenticated — missing layout guard?')
+  if (!session) throw new SessionGuardError('unauthenticated')
   return session
 }
