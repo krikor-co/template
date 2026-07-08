@@ -6,6 +6,7 @@ import type { State } from './state'
 import { route } from '../../contract'
 import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import { useFormValues } from '@/lib/hooks/useFormValues'
+import { useT } from '@/lib/i18n/LocaleProvider'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Label } from '@/components/ui/Label'
@@ -13,6 +14,7 @@ import { Label } from '@/components/ui/Label'
 export function RegisterForm({ initialState }: { initialState: State }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
+  const m = useT()
   useRedirectOnSuccess(state, [reset, form.reset])
 
   const handleSubmit = async (formData: FormData) => {
@@ -30,14 +32,14 @@ export function RegisterForm({ initialState }: { initialState: State }) {
       return (
         <div key="register" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Create your account</h1>
-            <p className="text-muted-foreground">Just your name to get started</p>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.register.title}</h1>
+            <p className="text-muted-foreground">{m.auth.register.subtitle}</p>
           </div>
           <form key="form" action={handleSubmit} className="space-y-4">
             <input type="hidden" name="email" value={state.email} />
 
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>{m.auth.register.emailLabel}</Label>
               <p key="email-display" className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
                 {state.email}
               </p>
@@ -45,7 +47,7 @@ export function RegisterForm({ initialState }: { initialState: State }) {
 
             <div className="space-y-2">
               <Label htmlFor="name">
-                Name <span className="text-muted-foreground">(optional)</span>
+                {m.auth.register.nameLabel} <span className="text-muted-foreground">{m.common.optional}</span>
               </Label>
               <Input
                 key="name"
@@ -57,7 +59,7 @@ export function RegisterForm({ initialState }: { initialState: State }) {
                 onChange={() => {
                   if (state.status === 'error') send({ type: 'RETRY' })
                 }}
-                placeholder="Your name"
+                placeholder={m.auth.register.namePlaceholder}
               />
             </div>
 
@@ -66,7 +68,7 @@ export function RegisterForm({ initialState }: { initialState: State }) {
             )}
 
             <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
-              {state.status === 'submitting' ? 'Creating account…' : 'Create account'}
+              {state.status === 'submitting' ? m.auth.register.submitting : m.auth.register.submit}
             </Button>
           </form>
         </div>
@@ -75,12 +77,12 @@ export function RegisterForm({ initialState }: { initialState: State }) {
       return (
         <div key="register" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Create your account</h1>
-            <p className="text-muted-foreground">Just your name to get started</p>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.register.title}</h1>
+            <p className="text-muted-foreground">{m.auth.register.subtitle}</p>
           </div>
           <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>{m.auth.register.emailLabel}</Label>
               <p key="email-display" className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
                 {state.email}
               </p>
@@ -88,15 +90,15 @@ export function RegisterForm({ initialState }: { initialState: State }) {
 
             <div className="space-y-2">
               <Label htmlFor="name">
-                Name <span className="text-muted-foreground">(optional)</span>
+                {m.auth.register.nameLabel} <span className="text-muted-foreground">{m.common.optional}</span>
               </Label>
-              <Input key="name" id="name" name="name" type="text" disabled defaultValue={form.values.name} placeholder="Your name" />
+              <Input key="name" id="name" name="name" type="text" disabled defaultValue={form.values.name} placeholder={m.auth.register.namePlaceholder} />
             </div>
 
-            <p className="text-sm text-muted-foreground">Account created! Redirecting…</p>
+            <p className="text-sm text-muted-foreground">{m.auth.register.success}</p>
 
             <Button key="submit" type="button" disabled>
-              Redirecting…
+              {m.common.redirecting}
             </Button>
           </form>
         </div>

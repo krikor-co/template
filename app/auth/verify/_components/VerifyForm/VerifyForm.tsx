@@ -7,6 +7,7 @@ import type { State } from './state'
 import { route } from '../../contract'
 import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import { useFormValues } from '@/lib/hooks/useFormValues'
+import { useT } from '@/lib/i18n/LocaleProvider'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Label } from '@/components/ui/Label'
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/Label'
 export function VerifyForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
+  const m = useT()
   const resendOtp = useResendOtp(initialState.email)
   useRedirectOnSuccess(state, [reset, form.reset], 2000)
 
@@ -32,16 +34,16 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
       return (
         <div key="verify" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Check your email</h1>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.verify.title}</h1>
             <p className="text-muted-foreground">
-              We sent a 6-digit code to <strong>{state.email}</strong>
+              {m.auth.verify.subtitleBefore} <strong>{state.email}</strong>
             </p>
           </div>
           <form key="form" action={handleSubmit} className="space-y-4">
             <input type="hidden" name="email" value={state.email} />
 
             <div className="space-y-2">
-              <Label htmlFor="code">Verification code</Label>
+              <Label htmlFor="code">{m.auth.verify.codeLabel}</Label>
               <Input
                 key="code"
                 id="code"
@@ -65,30 +67,30 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
             )}
 
             <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
-              {state.status === 'submitting' ? 'Verifying…' : 'Verify code'}
+              {state.status === 'submitting' ? m.auth.verify.submitting : m.auth.verify.submit}
             </Button>
           </form>
 
           <div key="resend" className="text-center text-sm">
             {resendOtp.status === 'waiting' && (
-              <p className="text-muted-foreground">Resend code in {resendOtp.secondsLeft}s</p>
+              <p className="text-muted-foreground">{m.auth.verify.resendWait(resendOtp.secondsLeft)}</p>
             )}
             {resendOtp.status === 'ready' && (
               <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
-                Resend code
+                {m.auth.verify.resend}
               </button>
             )}
             {resendOtp.status === 'sending' && (
-              <p className="text-muted-foreground">Sending…</p>
+              <p className="text-muted-foreground">{m.auth.verify.resendSending}</p>
             )}
             {resendOtp.status === 'sent' && (
-              <p className="text-muted-foreground">Code sent!</p>
+              <p className="text-muted-foreground">{m.auth.verify.resendSent}</p>
             )}
             {resendOtp.status === 'error' && (
               <div className="space-y-1">
                 <p className="text-destructive">{resendOtp.error}</p>
                 <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
-                  Try again
+                  {m.common.tryAgain}
                 </button>
               </div>
             )}
@@ -99,14 +101,14 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
       return (
         <div key="verify" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Check your email</h1>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.verify.title}</h1>
             <p className="text-muted-foreground">
-              We sent a 6-digit code to <strong>{state.email}</strong>
+              {m.auth.verify.subtitleBefore} <strong>{state.email}</strong>
             </p>
           </div>
           <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
-              <Label htmlFor="code">Verification code</Label>
+              <Label htmlFor="code">{m.auth.verify.codeLabel}</Label>
               <Input
                 key="code"
                 id="code"
@@ -119,10 +121,10 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
               />
             </div>
 
-            <p className="text-sm text-muted-foreground">Verified! Redirecting…</p>
+            <p className="text-sm text-muted-foreground">{m.auth.verify.success}</p>
 
             <Button key="submit" type="button" disabled>
-              Redirecting…
+              {m.common.redirecting}
             </Button>
           </form>
         </div>

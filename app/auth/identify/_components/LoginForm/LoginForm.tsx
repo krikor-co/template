@@ -6,6 +6,7 @@ import type { State } from './state'
 import { route } from '../../contract'
 import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import { useFormValues } from '@/lib/hooks/useFormValues'
+import { useT } from '@/lib/i18n/LocaleProvider'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Label } from '@/components/ui/Label'
@@ -13,6 +14,7 @@ import { Label } from '@/components/ui/Label'
 export function LoginForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
+  const m = useT()
   useRedirectOnSuccess(state, [reset, form.reset])
 
   const handleSubmit = async (formData: FormData) => {
@@ -30,13 +32,13 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
       return (
         <div key="login" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Enter your email to continue</p>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.identify.title}</h1>
+            <p className="text-muted-foreground">{m.auth.identify.subtitle}</p>
           </div>
           <form key="form" action={handleSubmit} className="space-y-4">
             {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.auth.identify.emailLabel}</Label>
               <Input
                 key="email"
                 id="email"
@@ -48,7 +50,7 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
                 onChange={() => {
                   if (state.status === 'error') send({ type: 'RETRY' })
                 }}
-                placeholder="you@example.com"
+                placeholder={m.auth.identify.emailPlaceholder}
               />
             </div>
 
@@ -57,7 +59,7 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
             )}
 
             <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
-              {state.status === 'submitting' ? 'Checking for account…' : 'Log in'}
+              {state.status === 'submitting' ? m.auth.identify.submitting : m.auth.identify.submit}
             </Button>
           </form>
         </div>
@@ -66,19 +68,19 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
       return (
         <div key="login" className="space-y-8">
           <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Enter your email to continue</p>
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight">{m.auth.identify.title}</h1>
+            <p className="text-muted-foreground">{m.auth.identify.subtitle}</p>
           </div>
           <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input key="email" id="email" name="email" type="email" disabled defaultValue={form.values.email} placeholder="you@example.com" />
+              <Label htmlFor="email">{m.auth.identify.emailLabel}</Label>
+              <Input key="email" id="email" name="email" type="email" disabled defaultValue={form.values.email} placeholder={m.auth.identify.emailPlaceholder} />
             </div>
 
-            <p className="text-sm text-muted-foreground">Redirecting…</p>
+            <p className="text-sm text-muted-foreground">{m.common.redirecting}</p>
 
             <Button key="submit" type="button" disabled>
-              Redirecting…
+              {m.common.redirecting}
             </Button>
           </form>
         </div>
