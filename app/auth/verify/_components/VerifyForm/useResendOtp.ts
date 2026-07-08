@@ -10,6 +10,12 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
   const [secondsLeft, setSecondsLeft] = useState(cooldownSeconds)
   const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
+  const sentTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // The post-"sent" reset fires 2s later; clear it on unmount so a user who
+  // verifies and navigates away inside that window doesn't trigger a
+  // setState on an unmounted component (React warning + leaked timer).
+  useEffect(() => () => clearTimeout(sentTimeoutRef.current), [])
 
   // Countdown timer — decrements secondsLeft every second
   useEffect(() => {
@@ -43,7 +49,7 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
     const result = await resendOtpAction(email)
     if (result.success) {
       setStatus('sent')
-      setTimeout(() => {
+      sentTimeoutRef.current = setTimeout(() => {
         setSecondsLeft(cooldownSeconds)
         setStatus('waiting')
       }, 2000)
