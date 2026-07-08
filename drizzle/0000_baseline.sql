@@ -40,6 +40,30 @@ CREATE TABLE IF NOT EXISTS "workspace_members" (
 	CONSTRAINT "workspace_members_workspace_id_user_id_unique" UNIQUE("workspace_id","user_id")
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "invites" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "invites_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"workspace_id" integer NOT NULL,
+	"email" text NOT NULL,
+	"role" text NOT NULL,
+	"token" text NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"invited_by_user_id" integer NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"accepted_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "invites_token_unique" UNIQUE("token")
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "feature_flag" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "feature_flag_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"scope" text NOT NULL,
+	"scope_id" integer,
+	"feature_key" text NOT NULL,
+	"enabled" boolean NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "feature_flag_scope_check" CHECK ("feature_flag"."scope" IN ('global', 'workspace', 'user'))
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "sessions" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "sessions_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"user_id" integer NOT NULL,
@@ -118,6 +142,18 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
+ ALTER TABLE "invites" ADD CONSTRAINT "invites_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "invites" ADD CONSTRAINT "invites_invited_by_user_id_users_id_fk" FOREIGN KEY ("invited_by_user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
  ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -144,6 +180,9 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS "persons_email_unique" ON "persons" USING btree ("email") WHERE "persons"."email" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "persons_phone_unique" ON "persons" USING btree ("phone_number") WHERE "persons"."phone_number" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "workspaces_slug_unique" ON "workspaces" USING btree ("slug") WHERE "workspaces"."slug" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "feature_flag_global_key_unique" ON "feature_flag" USING btree ("feature_key") WHERE "feature_flag"."scope" = 'global';--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "feature_flag_scoped_unique" ON "feature_flag" USING btree ("scope","scope_id","feature_key") WHERE "feature_flag"."scope" <> 'global';--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "feature_flag_scope_lookup" ON "feature_flag" USING btree ("scope","scope_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "otp_codes_email_idx" ON "otp_codes" USING btree ("email");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "otp_codes_expires_at_idx" ON "otp_codes" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "rate_limits_key_action_idx" ON "rate_limits" USING btree ("key","action");--> statement-breakpoint
