@@ -28,7 +28,10 @@ export async function registerAction(
   })
   if (!parsed.success) return { success: false, error: 'Invalid input.' }
 
-  const { email, name } = parsed.data
+  const { name } = parsed.data
+  // Emails are case-insensitive — lowercase so the uniqueness check and the
+  // stored person row use the canonical form.
+  const email = parsed.data.email.toLowerCase()
 
   const ip = await getClientIp()
   const limit = await registerLimit.check(email, ip)

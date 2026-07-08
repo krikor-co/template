@@ -30,7 +30,10 @@ export async function verifyOtpAction(
   })
   if (!parsed.success) return { success: false, error: 'Invalid input.' }
 
-  const { email, code } = parsed.data
+  const { code } = parsed.data
+  // Canonicalize to lowercase so the OTP lookup and the person lookup are
+  // case-insensitive (same rule as sendLoginOtp/registerAction).
+  const email = parsed.data.email.toLowerCase()
 
   const ip = await getClientIp()
   const limit = await verifyLimit.check(email, ip)
@@ -87,20 +90,24 @@ const resendSchema = z.object({
 })
 
 export async function resendOtpAction(
-  email: string
+  rawEmail: string
 ): Promise<{ success: true } | { success: false; error: string }> {
-  const parsed = resendSchema.safeParse({ email })
+  const parsed = resendSchema.safeParse({ email: rawEmail })
   if (!parsed.success) return { success: false, error: 'Invalid email.' }
 
+  // Same canonicalization — the OTP row must be keyed by the lowercase
+  // email or the resent code can't be found at verify time.
+  const email = parsed.data.email.toLowerCase()
+
   const ip = await getClientIp()
-  const limit = await resendLimit.check(parsed.data.email, ip)
+  const limit = await resendLimit.check(email, ip)
   if (!limit.ok) return { success: false, error: limit.error }
 
-  const { code } = await createEmailOtp(parsed.data.email)
+  const { code } = await createEmailOtp(email)
 
   const { error } = await resend.emails.send({
     from:    process.env.RESEND_FROM_EMAIL ?? 'noreply@verify.prolizz.com',
-    to:      parsed.data.email,
+    to:      email,
     subject: 'Your login code',
     html:    `<p>Your login code is <strong>${code}</strong>. It expires in 15 minutes.</p>`,
   })

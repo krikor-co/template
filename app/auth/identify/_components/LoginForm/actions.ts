@@ -25,7 +25,11 @@ export async function sendLoginOtp(
   const parsed = schema.safeParse({ email: formData.get('email'), returnTo: formData.get('returnTo') || undefined })
   if (!parsed.success) return { success: false, error: 'Invalid email address.' }
 
-  const { email, returnTo } = parsed.data
+  const { returnTo } = parsed.data
+  // Emails are case-insensitive — lowercase before rate-limit keying, person
+  // lookup, and OTP creation so "User@…" matches the existing "user@…"
+  // person instead of creating a duplicate account.
+  const email = parsed.data.email.toLowerCase()
 
   const ip = await getClientIp()
   const limit = await sendOtpLimit.check(email, ip)
