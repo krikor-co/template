@@ -22,6 +22,7 @@ export function useResendOtp(identifier: string, identifierType: IdentifierType,
   useEffect(() => {
     if (status !== 'waiting') return
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot countdown reset on (re)entering 'waiting'; functional update runs once per status change and cannot cascade
     setSecondsLeft((prev) => (prev <= 0 ? cooldownSeconds : prev))
 
     intervalRef.current = setInterval(() => {
@@ -40,6 +41,7 @@ export function useResendOtp(identifier: string, identifierType: IdentifierType,
   // Transition to 'ready' when countdown reaches 0
   useEffect(() => {
     if (status === 'waiting' && secondsLeft === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- terminal 'waiting'→'ready' transition when the countdown hits 0; the guard makes it run exactly once and it cannot cascade
       setStatus('ready')
     }
   }, [status, secondsLeft])
