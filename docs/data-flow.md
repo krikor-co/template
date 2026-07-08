@@ -608,4 +608,3 @@ return mapResult(result, {
   custom:   (r) => isMarker(r.error, Markers.orderLocked) ? 'This order is locked.' : null,
 })
 ```
-```
