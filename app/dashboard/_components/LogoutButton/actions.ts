@@ -8,6 +8,12 @@ import { sessions } from '@/db/schema'
 import { runAction } from '@/lib/effect/run-action'
 import { mapResult } from '@/lib/effect/boundary'
 import { dbE } from '@/lib/effect/db'
+import {
+  AUTH_SESSION_COOKIE,
+  AUTH_IDENTIFIER_COOKIE,
+  AUTH_IDENTIFIER_TYPE_COOKIE,
+  AUTH_IS_NEW_COOKIE,
+} from '@/lib/auth/identifier'
 
 /**
  * Worked example of the Effect action pattern (see docs/data-flow.md →
@@ -31,7 +37,7 @@ export async function logoutAction(): Promise<
   { success: true } | { success: false; error: string }
 > {
   const cookieStore = await cookies()
-  const token = cookieStore.get('session_token')?.value
+  const token = cookieStore.get(AUTH_SESSION_COOKIE)?.value
 
   const result = await runAction(logout(token), { actionName: 'logoutAction' })
 
@@ -39,9 +45,10 @@ export async function logoutAction(): Promise<
   // must not leave the client logged in. (The legacy version threw before
   // reaching this point on DB error; this is strictly safer.)
   const cookieOpts = { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const }
-  cookieStore.set('session_token', '', { ...cookieOpts, maxAge: 0 })
-  cookieStore.set('auth_email', '', { ...cookieOpts, maxAge: 0 })
-  cookieStore.set('auth_is_new', '', { ...cookieOpts, maxAge: 0 })
+  cookieStore.set(AUTH_SESSION_COOKIE, '', { ...cookieOpts, maxAge: 0 })
+  cookieStore.set(AUTH_IDENTIFIER_COOKIE, '', { ...cookieOpts, maxAge: 0 })
+  cookieStore.set(AUTH_IDENTIFIER_TYPE_COOKIE, '', { ...cookieOpts, maxAge: 0 })
+  cookieStore.set(AUTH_IS_NEW_COOKIE, '', { ...cookieOpts, maxAge: 0 })
 
   return mapResult(result, { fallback: 'Could not log out. Please try again.' })
 }

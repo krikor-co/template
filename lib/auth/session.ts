@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { cookies } from 'next/headers'
 import { verifySessionToken, type SessionPayload } from './jwt'
+import { AUTH_SESSION_COOKIE } from './identifier'
 import { db } from '@/db/drizzle'
 import { sessions } from '@/db/schema'
 import { eq, and, gt } from 'drizzle-orm'
@@ -17,7 +18,7 @@ import { eq, and, gt } from 'drizzle-orm'
 export const getSession = cache(async (): Promise<SessionPayload | null> => {
   try {
     const cookieStore = await cookies()
-    const token = cookieStore.get('session_token')?.value
+    const token = cookieStore.get(AUTH_SESSION_COOKIE)?.value
     if (!token) return null
 
     const payload = await verifySessionToken(token)
