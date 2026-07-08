@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "drizzle-kit migrate && next build",
+    "build": "node scripts/migrate.mjs && next build",
+    "db:deploy": "drizzle-kit migrate",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
