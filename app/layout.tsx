@@ -1,5 +1,8 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
+import { DEFAULT_LOCALE } from '@/lib/i18n/types'
+import { TimezoneSync } from '@/lib/i18n/TimezoneSync'
+import { ThemeProvider } from '@/lib/theme/ThemeProvider'
 import './globals.css'
 
 // ONE font for the whole app (`--font-geist`); Tailwind's font-serif/font-mono
@@ -17,14 +20,35 @@ export const metadata: Metadata = {
   description: 'Built with the Flow Framework',
 }
 
+/**
+ * `interactiveWidget: 'resizes-content'` makes the on-screen keyboard SHRINK
+ * the layout viewport instead of overlaying it. Full-height `100dvh` surfaces
+ * (drawers/modals with bottom-pinned composers or submit bars) then ride just
+ * above the keyboard with no dead gap and nothing hidden behind it. Keeps the
+ * standard mobile defaults (`width=device-width, initial-scale=1`).
+ */
+export const viewport: Viewport = {
+  width:             'device-width',
+  initialScale:      1,
+  interactiveWidget: 'resizes-content',
+}
+
+/**
+ * Root layout uses DEFAULT_LOCALE for the `<html lang>` attribute. Any
+ * per-user locale override happens client-side via `LocaleProvider`
+ * (mounted by area layouts, e.g. `app/auth/layout.tsx`) — keeping this
+ * server component synchronous means root navigation never blocks per
+ * Next 16 Cache Components.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={DEFAULT_LOCALE} suppressHydrationWarning>
       <body
         className={`${geist.variable} font-sans antialiased`}
         style={{ ['--font-display' as string]: 'var(--font-geist)', ['--font-kicker' as string]: 'var(--font-geist)' }}
       >
-        {children}
+        <TimezoneSync />
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )
