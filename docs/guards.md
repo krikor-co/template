@@ -113,3 +113,35 @@ return { success: true }
 ```
 
 Internal auth routes (`/auth/verify`, `/auth/register`) don't need a `returnTo` param — the cookie carries it through the entire flow.
+
+## Throw-based data guards
+
+Beyond redirect-returning layout guards, guards that server **actions** share
+with layouts are throw-based: `requireXxx()` either passes or throws a
+`XxxGuardError` carrying `reason: 'unauthenticated' | 'forbidden'`.
+
+| Guard | Error class | Lives in | Checks |
+|-------|-------------|----------|--------|
+| `requireSession()` | `SessionGuardError` | `lib/auth/session.ts` | valid session exists |
+| `requireWorkspaceRole(workspaceId, role)` | `WorkspaceGuardError` | `app/workspace/guards.ts` | active membership with one of `role` (string or array) on an active workspace |
+| `requireAdmin()` | `AdminGuardError` | `app/admin/guards.ts` | `users.role === 'admin'` (platform-wide, not workspace-scoped) |
+
+The `unauthenticated` / `forbidden` split is intentional UX: unauthenticated →
+send to login; forbidden → show no-permission copy. Layouts catch and redirect:
+
+```typescript
+// app/workspace/[workspaceId]/layout.tsx
+try {
+  await requireWorkspaceRole(workspaceId, ['owner', 'member'])
+} catch (e) {
+  if (e instanceof WorkspaceGuardError && e.reason === 'unauthenticated') {
+    redirect(route.exits.login({ workspaceId }))
+  }
+  redirect(route.exits.dashboard())
+}
+```
+
+Server actions never try/catch — they use the Effect adapters in
+`lib/effect/auth.ts` (`requireSessionE`, `requireWorkspaceRoleE`,
+`requireAdminE`), which map the guard errors to typed `Unauthenticated` /
+`Forbidden` failures inside the pipe.

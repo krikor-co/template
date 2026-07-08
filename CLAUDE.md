@@ -28,6 +28,8 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`caching.md`](docs/caching.md) | CacheRegistry, tags, invalidation patterns |
 | [`guards.md`](docs/guards.md) | Layout guards, transition guards, cookie returnTo |
 | [`rate-limiting.md`](docs/rate-limiting.md) | createRateLimit, key strategy, storage |
+| [`tenancy.md`](docs/tenancy.md) | Workspaces, memberships, invites, host→workspace middleware, workspace guards |
+| [`feature-flags.md`](docs/feature-flags.md) | Feature registry, 3-scope overrides (global/workspace/user), fail-open nav gating |
 | [`i18n.md`](docs/i18n.md) | Locale resolution chain, `t(locale)` messages, Intl formatters, timezone + theme providers |
 | [`storybook.md`](docs/storybook.md) | Story patterns, co-location, running |
 | [`design-tokens.md`](docs/design-tokens.md) | Accent triads, tone scale, typography/radius/shadow tokens, palette swap procedure |
