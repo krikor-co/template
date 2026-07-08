@@ -1,8 +1,10 @@
+import type { IdentifierType } from '@/lib/auth/identifier'
+
 export type State =
-  | { status: 'idle';       email: string }
-  | { status: 'submitting'; email: string }
-  | { status: 'error';      email: string; message: string }
-  | { status: 'success';    email: string; redirectTo: string }
+  | { status: 'idle';       identifier: string; identifierType: IdentifierType }
+  | { status: 'submitting'; identifier: string; identifierType: IdentifierType }
+  | { status: 'error';      identifier: string; identifierType: IdentifierType; message: string }
+  | { status: 'success';    identifier: string; identifierType: IdentifierType; redirectTo: string }
 
 export type Event =
   | { type: 'SUBMIT' }
