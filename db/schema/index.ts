@@ -1,5 +1,7 @@
 export * from './persons'
 export * from './users'
+export * from './workspaces'
+export * from './workspace-members'
 export * from './sessions'
 export * from './otp-codes'
 export * from './rate-limits'
