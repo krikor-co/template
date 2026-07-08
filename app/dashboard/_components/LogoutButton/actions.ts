@@ -1,9 +1,31 @@
 'use server'
 
+import { Effect, pipe } from 'effect'
 import { cookies } from 'next/headers'
+import { eq } from 'drizzle-orm'
 import { db } from '@/db/drizzle'
 import { sessions } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { runAction } from '@/lib/effect/run-action'
+import { mapResult } from '@/lib/effect/boundary'
+import { dbE } from '@/lib/effect/db'
+
+/**
+ * Worked example of the Effect action pattern (see docs/data-flow.md →
+ * "Server actions and cached queries with Effect"): pure-pipe business
+ * logic, `runAction` boundary (30s timeout + `logoutAction` span into
+ * trace_span), `mapResult` collapsing every failure kind to one user-facing
+ * message. The result signature is the flat legacy shape, so the section
+ * component is unchanged.
+ */
+const logout = (token: string | undefined) => pipe(
+  Effect.Do,
+  Effect.tap(() =>
+    token
+      ? dbE.run(db.update(sessions).set({ forceDeactivation: true }).where(eq(sessions.token, token)))
+      : Effect.void,
+  ),
+  Effect.map(() => ({})),
+)
 
 export async function logoutAction(): Promise<
   { success: true } | { success: false; error: string }
@@ -11,17 +33,15 @@ export async function logoutAction(): Promise<
   const cookieStore = await cookies()
   const token = cookieStore.get('session_token')?.value
 
-  if (token) {
-    await db
-      .update(sessions)
-      .set({ forceDeactivation: true })
-      .where(eq(sessions.token, token))
-  }
+  const result = await runAction(logout(token), { actionName: 'logoutAction' })
 
+  // Cookies clear regardless of DB outcome — a failed session-row update
+  // must not leave the client logged in. (The legacy version threw before
+  // reaching this point on DB error; this is strictly safer.)
   const cookieOpts = { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const }
   cookieStore.set('session_token', '', { ...cookieOpts, maxAge: 0 })
   cookieStore.set('auth_email', '', { ...cookieOpts, maxAge: 0 })
   cookieStore.set('auth_is_new', '', { ...cookieOpts, maxAge: 0 })
 
-  return { success: true }
+  return mapResult(result, { fallback: 'Could not log out. Please try again.' })
 }
