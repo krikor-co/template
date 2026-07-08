@@ -2,6 +2,8 @@ import { Effect, pipe } from 'effect'
 import { getSession } from '@/lib/auth/session'
 import type { SessionPayload } from '@/lib/auth/jwt'
 import { Forbidden, Unauthenticated } from './errors'
+import { AdminGuardError, requireAdmin as requireAdminRaw } from '@/app/admin/guards'
+import { WorkspaceGuardError, requireWorkspaceRole as requireWorkspaceRoleRaw } from '@/app/workspace/guards'
 
 /**
  * Effect-flavored auth guard adapters. Each maps a throw/null-based guard
@@ -26,30 +28,43 @@ export const requireSessionE = (): Effect.Effect<SessionPayload, Unauthenticated
   )
 
 /**
- * STUB — the admin guard (`requireAdmin` / `AdminGuardError` over
- * `users.role === 'admin'`) is not wired yet. Fails closed with `Forbidden`
- * until then. The real implementation wraps the throw-based `requireAdmin()`
- * with `Effect.tryPromise` and maps
- * `AdminGuardError.reason === 'unauthenticated'` → `Unauthenticated`,
- * everything else → `Forbidden`.
+ * Effect-flavored platform-admin guard. Wraps the throw-based
+ * `requireAdmin` (app/admin/guards.ts — checks `users.role === 'admin'`,
+ * NOT workspace-scoped) with `Effect.tryPromise` and maps:
+ *   AdminGuardError.reason === 'unauthenticated' → Unauthenticated
+ *   anything else                                → Forbidden (safe default)
+ * Used by every admin-only server action.
  */
 export const requireAdminE = (): Effect.Effect<void, Forbidden | Unauthenticated> =>
-  Effect.fail(new Forbidden({ message: 'Admin guard not wired yet' }))
+  Effect.tryPromise({
+    try:   () => requireAdminRaw(),
+    catch: (e) => {
+      if (e instanceof AdminGuardError && e.reason === 'unauthenticated') {
+        return new Unauthenticated({ message: 'Not signed in' })
+      }
+      return new Forbidden({ message: 'Admin role required' })
+    },
+  })
 
 /**
- * STUB — the workspace-role guard (`requireWorkspaceRole` /
- * `WorkspaceGuardError` over workspace_members) is not wired yet. Fails
- * closed with `Forbidden` until then. Pass a single role for exact-role
+ * Effect-flavored workspace-role guard. Pass a single role for exact-role
  * surfaces (`'owner'`) or an array for any-of (`['owner', 'member']`).
- * The real implementation wraps the throw-based
- * `requireWorkspaceRole(workspaceId, role)` with `Effect.tryPromise` and maps
- * `WorkspaceGuardError.reason === 'unauthenticated'` → `Unauthenticated`,
- * everything else → `Forbidden`.
+ * Wraps the throw-based `requireWorkspaceRole` (app/workspace/guards.ts)
+ * with `Effect.tryPromise` and maps:
+ *   WorkspaceGuardError.reason === 'unauthenticated' → Unauthenticated
+ *   anything else                                    → Forbidden (safe default)
+ * Used by every workspace-scoped server action.
  */
 export const requireWorkspaceRoleE = (
   workspaceId: string,
   role: string | string[],
 ): Effect.Effect<void, Forbidden | Unauthenticated> =>
-  Effect.fail(new Forbidden({
-    message: `Workspace guard not wired yet — workspace ${workspaceId}, role ${Array.isArray(role) ? role.join(', ') : role}`,
-  }))
+  Effect.tryPromise({
+    try:   () => requireWorkspaceRoleRaw(workspaceId, role),
+    catch: (e) => {
+      if (e instanceof WorkspaceGuardError && e.reason === 'unauthenticated') {
+        return new Unauthenticated({ message: 'Not signed in' })
+      }
+      return new Forbidden({ message: 'Workspace role required' })
+    },
+  })
