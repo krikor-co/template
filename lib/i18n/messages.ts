@@ -136,6 +136,22 @@ const en = {
       retry:    'Taking longer than expected? Refresh this page.',
     },
   },
+  billing: {
+    kicker:      'Billing',
+    title:       'Plan & billing',
+    subtitle:    'Manage your subscription — cancel, resume, or update payment details.',
+    currentPlan: 'Current plan',
+    unknownPlan: 'Subscription',
+    manage:      'Manage subscription',
+    renewsOn:    (date: string) => `Renews on ${date}`,
+    endsOn:      (date: string) => `Access ends on ${date}`,
+    cancel:      'Cancel subscription',
+    resume:      'Resume subscription',
+    errors: {
+      generic:        'Could not reach billing right now. Please try again.',
+      noSubscription: 'There is no active subscription to cancel.',
+    },
+  },
 }
 
 export type Messages = typeof en
@@ -263,6 +279,22 @@ const ptBR: Messages = {
       title:    'Ativando sua assinatura…',
       subtitle: 'Isso leva só um instante. Estamos confirmando seu pagamento.',
       retry:    'Demorando mais que o esperado? Atualize esta página.',
+    },
+  },
+  billing: {
+    kicker:      'Cobrança',
+    title:       'Plano e cobrança',
+    subtitle:    'Gerencie sua assinatura — cancele, retome ou atualize os dados de pagamento.',
+    currentPlan: 'Plano atual',
+    unknownPlan: 'Assinatura',
+    manage:      'Gerenciar assinatura',
+    renewsOn:    (date: string) => `Renova em ${date}`,
+    endsOn:      (date: string) => `Acesso encerra em ${date}`,
+    cancel:      'Cancelar assinatura',
+    resume:      'Retomar assinatura',
+    errors: {
+      generic:        'Não foi possível acessar a cobrança agora. Tente novamente.',
+      noSubscription: 'Não há assinatura ativa para cancelar.',
     },
   },
 }
