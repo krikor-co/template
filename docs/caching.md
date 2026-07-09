@@ -108,3 +108,22 @@ export async function fetchRecentPersons(): Promise<PersonRow[]> {
 `runQuery` bakes in a 30s timeout by default and provides the `TracingLayer`. Pass `timeout: '5 seconds'` for tighter ceilings, or `null` to disable. Failures **throw** at the boundary (matching Drizzle's native semantics) — no `{ success, error }` envelope.
 
 For the full mutation/query pattern, typed-error union, and pipe step reference, see [`data-flow.md` → "Server actions and cached queries with Effect"](data-flow.md#server-actions-and-cached-queries-with-effect).
+
+## Widget refresh (user-triggered freshness)
+
+A dashboard widget can expose a `<WidgetRefresh source={…} />` button
+(`components/ui/WidgetRefresh.tsx`). Two source modes:
+
+- **Server-cached widget** — `source={{ tags: ['bookings'] }}`. Register the
+  widget once in `lib/cache/refreshable.ts` (name → a thunk that calls the
+  section registry's `invalidate(Tag.…)`). The `refreshTags` server action
+  (`lib/cache/refresh-tags.ts`) is session-gated, invalidates the entries
+  (`updateTag`), and the hook follows with `router.refresh()` so the
+  `'use cache'` query re-runs fresh.
+- **Client-loader widget (Type 6)** — `source={{ onRefresh: () => reload() }}`.
+  Re-calls the loader; no server action involved.
+
+`REFRESHABLE` ships empty (empty-registry pattern): `RefreshTagName` is the
+app's tag union, so `refreshTags` only accepts names the app registered.
+Never call `updateTag`/`revalidateTag` from the widget itself — the registry
+invariant above still holds.
