@@ -41,6 +41,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`schema.md`](docs/schema.md) | Entity-first database modeling |
 | [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
 | [`planning.md`](docs/planning.md) | Design flow specs, planning process, implementation handoff |
+| [`blob.md`](docs/blob.md) | Vercel Blob uploads: `uploadImage` action, authed `/api/blob-image` proxy, ImageUpload/AvatarField |
 
 ---
 
