@@ -24,7 +24,7 @@ export const tileVariants = cva('rounded-3xl p-6 shadow-card', {
       'brand-solid':   'bg-brand text-brand-foreground',
       'success-solid': 'bg-success text-success-foreground',
       'warning-solid': 'bg-warning text-warning-foreground',
-      // Solid dark/neutral anchor block (irene's charcoal analog).
+      // Solid dark/neutral anchor block.
       accent:          'bg-accent text-accent-foreground',
       // Cool accent — AI / info surfaces ONLY (insight cards, info banners).
       info:            'bg-info-soft text-info-deep ring-1 ring-inset ring-info-deep/10',

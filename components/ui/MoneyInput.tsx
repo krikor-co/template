@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { inputChrome } from './Input'
 import { useMoneyInput, DEFAULT_MAX_MONEY } from './useMoneyInput'
@@ -56,7 +57,8 @@ export function MoneyInput({
 }: Props) {
   const resolvedLocale = locale ?? new Intl.NumberFormat().resolvedOptions().locale
   const symbol = currencySymbolFor(resolvedLocale, currency)
-  const money = useMoneyInput(defaultValue, resolvedLocale, Math.round(max * 100))
+  const inputRef = useRef<HTMLInputElement>(null)
+  const money = useMoneyInput(defaultValue, resolvedLocale, Math.round(max * 100), inputRef)
 
   return (
     <div className="relative">
@@ -67,7 +69,7 @@ export function MoneyInput({
         {symbol}
       </span>
       <input
-        ref={money.inputRef}
+        ref={inputRef}
         id={id}
         type="text"
         inputMode="numeric"

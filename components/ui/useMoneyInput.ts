@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 /**
  * Default upper bound for a single money field — mirrors a `numeric(10,2)`
@@ -48,22 +48,26 @@ export function seedCents(initial: number | string | undefined, maxCents: number
  * fill in from the RIGHT, so on an empty field typing `1`,`2`,`3` reads
  * `0.01` → `0.12` → `1.23`, and Backspace peels the rightmost digit off.
  *
+ * Takes the input element's ref as a parameter (owned by the caller, attached
+ * directly to the JSX `<input>`) so the caret-pinning logic can read/seek it
+ * from an effect and event handlers without bundling a ref into this hook's
+ * return value.
+ *
  * It exposes:
  *  - `display` — the locale-formatted masked string shown in the input
  *    (resting state is the locale's "0.00", never blank),
  *  - `raw` — the clean numeric string the form submits via a hidden input
  *    (`''` while untouched so required/empty validation still works),
  *  - `onChange` — recomputes cents from the input's digits and returns `raw`,
- *  - `inputRef` — attached to the `<input>` so the caret stays pinned to the
- *    end after each reformat (calculator behaviour).
+ *  - `onFocus`/`onKeyDown` — pin the caret to the end (calculator behaviour).
  */
 export function useMoneyInput(
   initial: number | string | undefined,
   locale: string,
   maxCents: number,
+  inputRef: React.RefObject<HTMLInputElement | null>,
 ) {
   const [cents, setCents] = useState<number | null>(() => seedCents(initial, maxCents))
-  const inputRef = useRef<HTMLInputElement>(null)
 
   function pinCaretToEnd() {
     const el = inputRef.current
@@ -76,7 +80,7 @@ export function useMoneyInput(
   // Pin the caret to the end after each live reformat. Every keystroke rebuilds
   // the whole masked string, so without this React's controlled-value caret
   // restoration can land mid-string; a calculator always types at the right.
-  useEffect(pinCaretToEnd, [cents])
+  useEffect(pinCaretToEnd, [cents, inputRef])
 
   // ...and on focus, so the caret rests at the right when the field is entered.
   function onFocus() {
@@ -115,5 +119,5 @@ export function useMoneyInput(
     return centsToRaw(next)
   }
 
-  return { display, raw, onChange, onFocus, onKeyDown, inputRef }
+  return { display, raw, onChange, onFocus, onKeyDown }
 }
