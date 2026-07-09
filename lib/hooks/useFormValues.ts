@@ -50,7 +50,7 @@ export function useFormValues(options?: UseFormValuesOptions) {
       setErrors({})
       return true
     },
-    [options?.validate],
+    [options],
   )
 
   const field = useCallback(
