@@ -100,6 +100,22 @@ Each part answers one question:
 - **Section**: what can this component show, and what can the user do from each state?
 - **CacheRegistry**: when data changes, what cached entries are now stale?
 
+## Cross-cutting primitives
+
+A page composes Shells + Sections, but it also renders row-links and
+back-links — and those are *not* invented per page. Two conventions are
+framework-wide:
+
+- **Link primitives** — row-clicks, back affordances, and filter-preserving
+  links are shared primitives (`<OriginLink>`, `<ContextualBackLink>`,
+  `<PreserveSearchLink>`, `<BackLink>` in `components/ui/`), each with a
+  decision tree entry. See [`links.md`](links.md).
+- **Inter-flow navigation** (`?from=`) — when a link takes the user *out* of
+  one flow into another, the destination page surfaces a "back to where you
+  came from" affordance alongside its canonical back. See
+  [`flow-params.md`](flow-params.md). Adopting it on a page is a one-line
+  swap (`BackLink` → `ContextualBackLink`).
+
 ### How they compose
 
 ```

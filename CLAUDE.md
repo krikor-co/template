@@ -35,6 +35,8 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`design-tokens.md`](docs/design-tokens.md) | Accent triads, tone scale, typography/radius/shadow tokens, palette swap procedure |
 | [`data-flow.md`](docs/data-flow.md) | Load/mutation/client-fetch, Effect boundary (runAction/runQuery), worked examples |
 | [`declarative-flows.md`](docs/declarative-flows.md) | Action-first design, state machines |
+| [`links.md`](docs/links.md) | Link-primitive decision tree — OriginLink / ContextualBackLink / PreserveSearchLink / BackLink |
+| [`flow-params.md`](docs/flow-params.md) | `?from=` lifecycle — withFrom, useReturnTo, useDropFlowParam, useKeepQs |
 | [`forms.md`](docs/forms.md) | useFormValues, value persistence, validation, controlled vs uncontrolled |
 | [`schema.md`](docs/schema.md) | Entity-first database modeling |
 | [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
