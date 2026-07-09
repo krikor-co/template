@@ -164,10 +164,21 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 
 ---
 
-## Available skills
+## Available skills & commands
+
+Skills (`.claude/skills/`):
 
 ```
 /design-flow       — collaborative spec-writing session for planning features as visual flow diagrams
+/autonomous-build  — build→verify→commit loop + fleet orchestration for long autonomous build/refactor sessions
+/e2e-via-cmux      — drive the running app end-to-end through a cmux browser pane, verifying against DB truth
+/verify-in-browser — visually verify a route/feature in a real browser via Playwright MCP (already authenticated)
+/frontend-design   — create distinctive, production-grade frontend interfaces with high design quality
+```
+
+Commands (`.claude/commands/`):
+
+```
 /scaffold-route    — creates entry.ts + contract.ts + page.tsx
 /scaffold-section  — creates a complete section folder
 /scaffold-feature  — builds a complete feature from a plain-English description

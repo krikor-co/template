@@ -183,6 +183,15 @@ If you're new to the framework, read in this order:
 9. **[Declarative Flows](declarative-flows)** — the design principle behind everything
 10. **[Commands](commands)** — CLI and Claude Code scaffolding commands
 
+Once the core clicks, reach for these by area:
+
+- **Design & interface** — [Design Tokens](design-tokens) · [i18n](i18n) · [Storybook](storybook)
+- **Navigation flow** — [Links](links) · [Flow Params](flow-params)
+- **Multi-tenant platform** — [Tenancy](tenancy) · [Feature Flags](feature-flags) · [Rate Limiting](rate-limiting)
+- **Data & schema** — [Schema](schema)
+- **Integrations** — [Capabilities](capabilities) · [Billing](billing) · [Blob](blob) · [Realtime](realtime) · [Cron](cron)
+- **Process** — [Planning](planning)
+
 ---
 
 ## Key invariants
