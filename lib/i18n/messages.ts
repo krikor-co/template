@@ -102,6 +102,11 @@ const en = {
       notFound: 'Invite not found.',
     },
   },
+  upload: {
+    failed:      'Failed to upload image. Please try again.',
+    tooLarge:    'Image is too large (max 5 MB).',
+    invalidType: 'Unsupported file type — use PNG, JPG, WEBP, GIF or SVG.',
+  },
 }
 
 export type Messages = typeof en
@@ -196,6 +201,11 @@ const ptBR: Messages = {
       accept:   'Não foi possível aceitar o convite.',
       notFound: 'Convite não encontrado.',
     },
+  },
+  upload: {
+    failed:      'Falha ao enviar a imagem. Tente novamente.',
+    tooLarge:    'Imagem muito grande (máx. 5 MB).',
+    invalidType: 'Tipo de arquivo não suportado — use PNG, JPG, WEBP, GIF ou SVG.',
   },
 }
 
