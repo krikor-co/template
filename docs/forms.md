@@ -382,3 +382,21 @@ export type State =
   | { status: 'error';   message: string }
   | { status: 'success'; redirectTo: string }
 ```
+
+## Form input primitives
+
+All text-like controls share the exported `inputChrome` string
+(`components/ui/Input.tsx`) so the whole form kit has one surface. The kit:
+`Field` (label + hint + error wiring), `Input`, `Select`, `Textarea`,
+`Checkbox`/`Radio`, `Switch`.
+
+Three inputs keep the plain-`<input>` FORM CONTRACT through a hidden input, so
+`formData.get(name)` never changes shape:
+
+| Primitive | Hidden-input value | Notes |
+|---|---|---|
+| `DatePicker` | `YYYY-MM-DD` (same as native `<input type="date">`) | `locale` prop (BCP-47) drives the trigger label; defaults to the runtime locale — pass the app locale for SSR-stable output |
+| `MoneyInput` | clean numeric string, e.g. `"1234.56"` | calculator-style cents mask; `currency`, `locale`, `max` props |
+| `PhoneInput` | E.164, e.g. `"+15551234567"` | `defaultCountry` is required — the app decides its market |
+
+All defaults are English; every user-facing string is overridable via props.
