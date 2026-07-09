@@ -82,6 +82,12 @@ Role-parameterized, single-use, emailed invites:
 - `<slug>.<APP_BASE_DOMAIN>` → `/workspace/<id>/…` (slug lookup)
 - a verified custom domain → `/workspace/<id>/…` (domain lookup)
 - base domain / `www` / `*.vercel.app` / `localhost` → untouched
+- framework-owned paths (`/workspace`, `/auth`, `/dashboard`, `/onboarding`,
+  `/invite`, `/docs`, `/admin`) → untouched even on a tenant host. These are
+  the layout guards' escape routes — an unauthenticated visitor on a tenant
+  host must still reach `/auth/identify`. Rules live in
+  `lib/tenant/rewrite-path.ts` (unit-tested); keep the list in sync with the
+  top-level `app/` areas.
 
 > **NOT a security boundary.** Host resolution only decides WHICH workspace's
 > pages a host shows. The workspace layout guards remain the wall — a spoofed

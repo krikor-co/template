@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { isSafeInternalPath } from './return-to'
 
 /**
  * Inter-flow navigation hooks built around a single `?from=` query param.
@@ -51,8 +52,10 @@ export function withFrom(target: string, current: string): string {
  * Pure validation core of `useReturnTo` — exported for unit tests and for
  * server-side reuse. Rules (any failure → `null`, caller falls back):
  *   - param must be present and non-empty
- *   - must be an in-app path: starts with `/` but not `//` (blocks absolute
- *     and protocol-relative URLs — open-redirect guard)
+ *   - must be an in-app path per `isSafeInternalPath` (lib/return-to.ts):
+ *     starts with `/` but not `//`, and contains no backslash / control
+ *     chars — blocks absolute, protocol-relative, and WHATWG-parser-bypass
+ *     variants like `/\evil.com` or `/<TAB>/evil.com` (open-redirect guard)
  *   - when `prefix` is given, must start with it (area scoping — a
  *     workspace-scoped app passes its workspace route prefix)
  *   - must not be the same as `fallback` (avoid duplicating canonical back)
@@ -63,7 +66,7 @@ export function resolveReturnTo(
   opts: { fallback: string; pathname: string; prefix?: string },
 ): string | null {
   if (!raw) return null
-  if (!raw.startsWith('/') || raw.startsWith('//')) return null
+  if (!isSafeInternalPath(raw)) return null
   if (opts.prefix && !raw.startsWith(opts.prefix)) return null
   if (raw === opts.fallback) return null
   if (raw === opts.pathname) return null

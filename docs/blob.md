@@ -58,7 +58,17 @@ out, so callers can fall back to a placeholder).
 
 `app/api/blob-image/route.ts` is the authed streaming proxy:
 
-- **Session-gated** — 401 without a valid session.
+- **Workspace-gated** — the blob pathname is `<folder>/<workspaceId>/…` by
+  construction, so the proxy parses the `workspaceId` segment and requires an
+  active `owner`/`member` membership (`requireWorkspaceRole`). 401 without a
+  session, 403 without membership or for any pathname outside the convention
+  (fail closed). Session-only gating is NOT enough — it would let any
+  signed-in user read any workspace's assets. If an app adds a new
+  private-blob namespace (e.g. per-user avatars), extend the route with the
+  matching ownership rule.
+- **Unguessable pathnames** — uploads pass `addRandomSuffix: true`, so URLs
+  can't be reconstructed by enumeration (defense in depth on top of the
+  membership gate).
 - **SSRF-guarded** — only proxies `https:` URLs whose hostname ends in
   `.blob.vercel-storage.com`. Without this, the route would be an open fetch
   proxy that exfiltrates with the server's Bearer token. Do not loosen it.

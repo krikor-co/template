@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createHostResolver } from '@/lib/tenant/resolve-host'
 import { lookupWorkspaceBySlug, lookupWorkspaceByDomain } from '@/lib/tenant/lookups'
+import { isTenantPassthroughPath, tenantRewritePath } from '@/lib/tenant/rewrite-path'
 
 /**
  * Multi-tenant host routing. When a request arrives on a workspace's OWN host
@@ -20,8 +21,12 @@ const resolveWorkspaceByHost = createHostResolver({
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  // Already workspace-scoped → leave it (in-app /workspace/[id] links resolve as-is).
-  if (pathname.startsWith('/workspace/')) return NextResponse.next()
+  // Framework-owned paths are never rewritten: already workspace-scoped paths
+  // resolve as-is, and the guards' escape routes (/auth, /dashboard, …) must
+  // stay reachable on a tenant host — otherwise the workspace layout's
+  // login redirect would rewrite onto /workspace/<id>/auth/… and 404.
+  // (Path rules live in lib/tenant/rewrite-path.ts — unit-tested.)
+  if (isTenantPassthroughPath(pathname)) return NextResponse.next()
 
   const workspaceId = await resolveWorkspaceByHost(req.headers.get('host'))
   if (workspaceId == null) return NextResponse.next()
@@ -29,9 +34,7 @@ export async function middleware(req: NextRequest) {
   const url = req.nextUrl.clone()
   // Bare host → the workspace home; everything else maps 1:1 onto the
   // canonical /workspace/<id>/… tree.
-  url.pathname = pathname === '/'
-    ? `/workspace/${workspaceId}`
-    : `/workspace/${workspaceId}${pathname}`
+  url.pathname = tenantRewritePath(pathname, workspaceId)
   return NextResponse.rewrite(url)
 }
 

@@ -4,6 +4,7 @@ import { VerifyForm } from './_components/VerifyForm/VerifyForm'
 import type { State } from './_components/VerifyForm/state'
 import { getAuthIdentifier, AUTH_RETURN_TO_COOKIE, transitions } from '@/app/auth/guards'
 import { entry as identifyEntry } from '@/app/auth/identify/entry'
+import { safeReturnTo } from '@/lib/return-to'
 
 export default async function VerifyPage() {
   const auth = await getAuthIdentifier()
@@ -17,7 +18,9 @@ export default async function VerifyPage() {
   if (!auth && !(await transitions.verify.isActive())) redirect(identifyEntry.href())
 
   const cookieStore = await cookies()
-  const returnTo = cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value
+  // Same-origin only — this value feeds the client's router.push on verify
+  // success, which would happily navigate to an absolute URL.
+  const returnTo = safeReturnTo(cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value) ?? undefined
 
   // During the success transition `auth` is null (cookie cleared) but the
   // client VerifyForm is already in its `success` state and is preserved

@@ -39,6 +39,18 @@ describe('resolveReturnTo', () => {
     expect(resolveReturnTo('//evil.example/x', base)).toBeNull()
   })
 
+  it('rejects WHATWG-parser bypasses: backslash and control-char variants', () => {
+    // new URL('/\\evil.com', origin) resolves to https://evil.com/ — `\` is `/`.
+    expect(resolveReturnTo('/\\evil.com', base)).toBeNull()
+    expect(resolveReturnTo('/\\/evil.com', base)).toBeNull()
+    // Tab/CR/LF are STRIPPED by the URL parser → '//evil.com' protocol-relative.
+    // '/%09/evil.com' in the address bar arrives here decoded as a literal tab.
+    expect(resolveReturnTo('/\t/evil.com', base)).toBeNull()
+    expect(resolveReturnTo(decodeURIComponent('/%09/evil.com'), base)).toBeNull()
+    expect(resolveReturnTo('/\r/evil.com', base)).toBeNull()
+    expect(resolveReturnTo('/\n/evil.com', base)).toBeNull()
+  })
+
   it('rejects values outside the allowed prefix when one is given', () => {
     expect(resolveReturnTo('/admin/secrets', { ...base, prefix: '/dashboard' })).toBeNull()
     expect(resolveReturnTo('/dashboard?tab=today', { ...base, prefix: '/dashboard' }))

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { getSession } from '@/lib/auth/session'
+import { safeReturnTo } from '@/lib/return-to'
 import { createTransitionGuard } from '@/lib/transition'
 import { entry as identifyEntry }  from '@/app/auth/identify/entry'
 import { entry as verifyEntry }    from '@/app/auth/verify/entry'
@@ -33,7 +34,9 @@ export async function canIdentify(): Promise<string | null> {
   if (await transitions.identify.isActive()) return null
 
   const cookieStore = await cookies()
-  const returnTo = cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value
+  // Defense in depth: the write site (sendLoginOtp) already sanitizes, but
+  // never trust a cookie value into redirect() — re-validate as same-origin.
+  const returnTo = safeReturnTo(cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value)
 
   const session = await getSession()
   if (session) return returnTo ?? dashboardEntry.href()
@@ -51,7 +54,7 @@ export async function canVerify(): Promise<string | null> {
   if (await transitions.verify.isActive()) return null
 
   const cookieStore = await cookies()
-  const returnTo = cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value
+  const returnTo = safeReturnTo(cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value)
 
   const session = await getSession()
   if (session) return returnTo ?? dashboardEntry.href()
@@ -69,7 +72,7 @@ export async function canRegister(): Promise<string | null> {
   if (await transitions.register.isActive()) return null
 
   const cookieStore = await cookies()
-  const returnTo = cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value
+  const returnTo = safeReturnTo(cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value)
 
   const session = await getSession()
   if (session) return returnTo ?? dashboardEntry.href()

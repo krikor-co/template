@@ -80,8 +80,15 @@ const uploadImageE = (
         // token — only for assets an UNAUTHENTICATED page must render; that
         // requires a second, PUBLIC Blob store and its own token
         // (BLOB_PUBLIC_READ_WRITE_TOKEN). See docs/blob.md "Public assets".
+        // `addRandomSuffix` keeps pathnames unguessable (defense in depth on
+        // top of the proxy's per-workspace authz — deterministic paths would
+        // otherwise be enumerable: sequential workspaceId + slugified name +
+        // millisecond timestamp). The `<folder>/<workspaceId>/…` prefix is
+        // LOAD-BEARING: `/api/blob-image` parses the second segment to gate
+        // reads on workspace membership.
         put(`${folder}/${workspaceId}/${Date.now()}-${safeName(file.name)}`, file, {
           access,
+          addRandomSuffix: true,
           token: access === 'public'
             ? process.env.BLOB_PUBLIC_READ_WRITE_TOKEN
             : process.env.BLOB_READ_WRITE_TOKEN,

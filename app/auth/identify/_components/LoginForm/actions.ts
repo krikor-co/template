@@ -19,6 +19,7 @@ import {
   AUTH_IS_NEW_COOKIE,
 } from '@/lib/auth/identifier'
 import { getPublicLocale } from '@/lib/i18n/getLocale'
+import { safeReturnTo } from '@/lib/return-to'
 import { tracedAction } from '@/lib/effect/traced'
 
 const sendOtpLimit = createRateLimit({ action: 'send_otp', max: 3, windowMs: 15 * 60 * 1000 })
@@ -40,7 +41,11 @@ export async function sendLoginOtp(
   })
   if (!parsed.success) return { success: false, error: 'Please enter an email or phone number.' }
 
-  const { returnTo } = parsed.data
+  // Open-redirect guard (CWE-601): the user-supplied returnTo (URL param →
+  // hidden field) is only honoured as a same-origin path. Anything else —
+  // absolute URLs, `//`, `/\` and control-char parser bypasses — collapses to
+  // null so the guards/layout fall back to the dashboard.
+  const returnTo = safeReturnTo(parsed.data.returnTo)
   const rawIdentifier = parsed.data.identifier.trim()
 
   const identifierType = detectIdentifierType(rawIdentifier)
