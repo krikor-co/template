@@ -10,16 +10,18 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
-  // Server Actions default to a 1 MB request-body cap — any real photo upload
-  // through a Server Action 413s. When the app ships file uploads (e.g. the
-  // Vercel Blob upload primitive + client-side downscale in
-  // components/ui/downscale-image.ts), uncomment this block as the backstop
-  // for the fail-safe original-file path.
-  // experimental: {
-  //   serverActions: {
-  //     bodySizeLimit: '8mb',
-  //   },
-  // },
+  experimental: {
+    // Server Actions default to a 1 MB request-body cap — any real photo
+    // upload through a Server Action 413s. Avatars are downscaled client-side
+    // (components/ui/downscale-image.ts) so they're tiny, but this raised
+    // ceiling backstops the fail-safe original-file path in
+    // components/ui/useAvatarField.ts (which uploads the original file when
+    // downscaling fails) and the raw <ImageUpload> path (5 MB server cap in
+    // lib/blob/upload-image.ts).
+    serverActions: {
+      bodySizeLimit: '8mb',
+    },
+  },
 }
 
 export default nextConfig
