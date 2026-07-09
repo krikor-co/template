@@ -5,12 +5,14 @@ import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Modal({
-  children, open, onClose, closeLabel = 'Close', title, ...props
+  children, open, onClose, closeLabel = 'Close', ariaLabel, title, ...props
 }: ShellProps & {
   open: boolean
   onClose: () => void
   /** Accessible label for the pinned ✕ button. Override for non-English UIs. */
   closeLabel?: string
+  /** Accessible name for the dialog. Defaults to `title`, then `'Dialog'` — set it when the modal has no visible title (and for non-English UIs). */
+  ariaLabel?: string
 }) {
   // Lock body scroll while the modal is open (ref-counted; safe to stack with
   // a drawer underneath). Hooks run before the early return so their cleanup
@@ -27,7 +29,10 @@ export function Modal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        // A dialog must always have an accessible name (aria-modal without a
+        // name is a WCAG gap) — fall back to a generic one when `title` is
+        // omitted; `ariaLabel` overrides both.
+        aria-label={ariaLabel ?? title ?? 'Dialog'}
         // Focus target of last resort (no focusable children) — outline
         // suppressed; the ✕ button is normally focused first.
         tabIndex={-1}

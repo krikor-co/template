@@ -7,13 +7,15 @@ import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Drawer({
-  children, open, onClose, side = 'right', closeLabel = 'Close', fill = false, title, ...props
+  children, open, onClose, side = 'right', closeLabel = 'Close', fill = false, ariaLabel, title, ...props
 }: ShellProps & {
   open: boolean
   onClose: () => void
   side?: 'left' | 'right'
   /** Accessible label for the pinned ✕ button. Override for non-English UIs. */
   closeLabel?: string
+  /** Accessible name for the dialog. Defaults to `title`, then `'Panel'` — set it when the drawer has no visible title (and for non-English UIs). */
+  ariaLabel?: string
   /** Non-scrolling full-height flex column; the content owns the scroll (e.g. chat: scrolling messages + pinned composer). */
   fill?: boolean
 }) {
@@ -35,7 +37,10 @@ export function Drawer({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        // A dialog must always have an accessible name (aria-modal without a
+        // name is a WCAG gap) — fall back to a generic one when `title` is
+        // omitted; `ariaLabel` overrides both.
+        aria-label={ariaLabel ?? title ?? 'Panel'}
         // Focus target of last resort (no focusable children) — outline
         // suppressed; the ✕ button is normally focused first.
         tabIndex={-1}
