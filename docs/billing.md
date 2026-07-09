@@ -65,6 +65,11 @@ app/workspace/[workspaceId]/
 ## Invariants
 
 - Checkout priceId is allowlisted against `PLANS` — never trust a client price.
+- Never create a second subscription on a customer with a LIVE one: the
+  paywall's `startCheckout` branches on `requiresPortalOverCheckout`
+  (`lib/stripe/active.ts`) — past_due/unpaid/incomplete (and, defensively,
+  active/trialing) get a Customer Portal URL to fix/manage the existing sub;
+  a fresh Checkout only happens for null/canceled/incomplete_expired.
 - `redirect()` stays OUTSIDE try/catch on the success page (control-flow throw).
 - Keep the two-level `current_period_end` fallback (subscription → first item) —
   Stripe API versions move this field.
