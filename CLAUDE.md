@@ -42,6 +42,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
 | [`planning.md`](docs/planning.md) | Design flow specs, planning process, implementation handoff |
 | [`blob.md`](docs/blob.md) | Vercel Blob uploads: `uploadImage` action, authed `/api/blob-image` proxy, ImageUpload/AvatarField |
+| [`realtime.md`](docs/realtime.md) | Workspace pulse: best-effort liveness bump + SSE nudge, `<WorkspaceLive>` |
 
 ---
 
