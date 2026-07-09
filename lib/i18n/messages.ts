@@ -107,6 +107,35 @@ const en = {
     tooLarge:    'Image is too large (max 5 MB).',
     invalidType: 'Unsupported file type — use PNG, JPG, WEBP, GIF or SVG.',
   },
+  subscribe: {
+    kicker:      'Choose a plan',
+    title:       'Pick a plan to continue',
+    subtitle:    'Your workspace is ready. Choose a subscription to unlock the app.',
+    perMonth:    '/mo',
+    subscribe:   'Subscribe',
+    recommended: 'Recommended',
+    error:       'Could not start checkout right now. Please try again.',
+    plans: {
+      basic:   { name: 'Basic' },
+      pro:     { name: 'Pro' },
+      premium: { name: 'Premium' },
+    },
+    features: {
+      core:            'Core features',
+      oneWorkspace:    'Single workspace',
+      everythingBasic: 'Everything in Basic',
+      advanced:        'Advanced features',
+      team:            'Team management',
+      everythingPro:   'Everything in Pro',
+      priority:        'Priority support',
+      api:             'API access',
+    },
+    success: {
+      title:    'Activating your subscription…',
+      subtitle: 'This only takes a moment. We are confirming your payment.',
+      retry:    'Taking longer than expected? Refresh this page.',
+    },
+  },
 }
 
 export type Messages = typeof en
@@ -206,6 +235,35 @@ const ptBR: Messages = {
     failed:      'Falha ao enviar a imagem. Tente novamente.',
     tooLarge:    'Imagem muito grande (máx. 5 MB).',
     invalidType: 'Tipo de arquivo não suportado — use PNG, JPG, WEBP, GIF ou SVG.',
+  },
+  subscribe: {
+    kicker:      'Escolha um plano',
+    title:       'Escolha um plano para continuar',
+    subtitle:    'Seu workspace está pronto. Escolha uma assinatura para liberar o app.',
+    perMonth:    '/mês',
+    subscribe:   'Assinar',
+    recommended: 'Recomendado',
+    error:       'Não foi possível iniciar o checkout agora. Tente novamente.',
+    plans: {
+      basic:   { name: 'Básico' },
+      pro:     { name: 'Pro' },
+      premium: { name: 'Premium' },
+    },
+    features: {
+      core:            'Recursos essenciais',
+      oneWorkspace:    'Um workspace',
+      everythingBasic: 'Tudo do Básico',
+      advanced:        'Recursos avançados',
+      team:            'Gestão de equipe',
+      everythingPro:   'Tudo do Pro',
+      priority:        'Suporte prioritário',
+      api:             'Acesso à API',
+    },
+    success: {
+      title:    'Ativando sua assinatura…',
+      subtitle: 'Isso leva só um instante. Estamos confirmando seu pagamento.',
+      retry:    'Demorando mais que o esperado? Atualize esta página.',
+    },
   },
 }
 
