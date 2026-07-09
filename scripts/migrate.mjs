@@ -53,6 +53,29 @@ try {
   )
   const applied = new Set((await pool.query('SELECT name FROM _migrations')).rows.map((r) => r.name))
 
+  // Drift guard: a database with pre-existing tables but no _migrations records
+  // was never baselined by this runner (an older drizzle-kit schema, or a DB
+  // shared with another app). Applying our baseline over it would silently
+  // no-op every `CREATE TABLE IF NOT EXISTS` and then fail cryptically on the
+  // first new column/index (Postgres 42703). Fail loudly and actionably
+  // instead. Set MIGRATE_ALLOW_DRIFT=1 to bypass when you know the schema
+  // already matches the baseline.
+  if (applied.size === 0 && files.length > 0 && !process.env.MIGRATE_ALLOW_DRIFT) {
+    const { rows } = await pool.query(
+      "SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema = current_schema() AND table_name <> '_migrations'",
+    )
+    if (rows[0].n > 0) {
+      throw new Error(
+        `[migrate] refusing to run: target database has ${rows[0].n} pre-existing table(s) but no _migrations records — it was not baselined by this runner. ` +
+          'This usually means DATABASE_URL points at an old-schema or shared database. Fix one of: ' +
+          '(a) point DATABASE_URL at a fresh database; ' +
+          '(b) reset this one — DROP SCHEMA public CASCADE; CREATE SCHEMA public; — then redeploy; ' +
+          `(c) if the schema already matches the baseline, mark it applied: INSERT INTO _migrations (name) VALUES ('${files[0]}'); ` +
+          'or set MIGRATE_ALLOW_DRIFT=1 to bypass this check.',
+      )
+    }
+  }
+
   let ran = 0
   for (const file of files) {
     if (applied.has(file)) continue
