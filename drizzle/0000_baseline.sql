@@ -136,6 +136,23 @@ CREATE TABLE IF NOT EXISTS "trace_span" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "ai_call_log" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "ai_call_log_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"workspace_id" integer,
+	"user_id" integer,
+	"purpose" text NOT NULL,
+	"model" text NOT NULL,
+	"input_tokens" integer,
+	"output_tokens" integer,
+	"total_tokens" integer,
+	"cost_usd" numeric(12, 6),
+	"cost_source" text,
+	"outcome" text,
+	"latency_ms" integer,
+	"details" jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "users" ADD CONSTRAINT "users_person_id_persons_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."persons"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
