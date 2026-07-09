@@ -59,7 +59,6 @@ export class DbSpanExporter implements SpanExporter {
     } catch (err) {
       // We do NOT throw — exporter failures must not break the app.
       // Log + report failed so the SDK can decide whether to retry.
-      // eslint-disable-next-line no-console
       console.error('[DbSpanExporter] insert failed:', err instanceof Error ? err.message : err)
       resultCallback({ code: ExportResultCode.FAILED, error: err as Error })
     }
