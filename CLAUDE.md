@@ -42,6 +42,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
 | [`planning.md`](docs/planning.md) | Design flow specs, planning process, implementation handoff |
 | [`billing.md`](docs/billing.md) | Workspace billing: Stripe gates, escape-route topology, cancel/resume, webhook |
+| [`capabilities.md`](docs/capabilities.md) | Capability Registry — one operation, one definition; AI tools are GENERATED |
 | [`blob.md`](docs/blob.md) | Vercel Blob uploads: `uploadImage` action, authed `/api/blob-image` proxy, ImageUpload/AvatarField |
 | [`realtime.md`](docs/realtime.md) | Workspace pulse: best-effort liveness bump + SSE nudge, `<WorkspaceLive>` |
 | [`cron.md`](docs/cron.md) | Cron convention: fail-closed `CRON_SECRET` gate, job catalog, per-tenant local-hour fan-out |
@@ -60,6 +61,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 □ Client section that fetches?→ add useXxxLoader.ts + server action loader in actions.ts
 □ Section has a `<form>`?     → add useFormValues(), capture in handleSubmit, defaultValue on inputs
 □ Navigates on success?       → route.exits.*() — never raw URL strings
+□ A new app OPERATION?        → define it ONCE as a Capability (lib/capabilities) — form/page call cap.run; AI tools are GENERATED from cap.ai (never hand-listed). See docs/capabilities.md
 ```
 
 ---
@@ -118,6 +120,15 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 - Default boundary timeout is 30s; tighten via `timeout: '5 seconds'` in opts. Always `Effect.timeoutFail` (typed), never plain `Effect.timeout`
 - See [`docs/data-flow.md`](docs/data-flow.md) "Server actions and cached queries with Effect" for the full pattern + worked example
 
+**Capabilities (the registry)**
+- A new app operation = ONE `Capability` (`lib/capabilities`): `{ id, kind, schema, run, ai? }`. `run` is the EXISTING action/query — never a new mutation path or new math
+- The form/page calls `cap.run(input)` (canonical `schema` input); never re-import the raw action where a capability exists
+- AI tools are GENERATED from `cap.ai` (`lib/capabilities/tools.ts`) — never hand-list a tool that duplicates an operation
+- Action caps register into an agent loop with NO `execute` — the model can only PROPOSE. Your confirm action is the SOLE mutation path: re-auth → re-validate → resolve → `cap.run` → audit
+- The loop's generated write tool AND your confirm step share ONE spine — `capWriteExecute(cap)` (`resolve → run → summarize`) — so they can never diverge
+- `workspaceId` always comes from `ctx` (`ai.resolve` injects it), NEVER an LLM arg; `resolve` is read-only (names→ids). Capabilities never navigate or import route contracts; auth stays inside `run`
+- Log every model call fail-open via `recordAiCall` (`lib/ai/instrument.ts`); classify final turn outcomes with `lib/ai/outcome.ts` — infra failures are NEVER refusals
+
 ---
 
 ## Quick decision guide
@@ -142,6 +153,8 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | Action returns field-level errors | `form.setErrors(result.fieldErrors)` — display via `form.errors.fieldName` |
 | Need hook logic in a component | Extract to `useXxx.ts` — never inline in component |
 | Route needs access control | Layout guard — redirect in layout, guard fn in feature layer |
+| New app operation (create/update/list/…) | Define ONE Capability (`lib/capabilities`); form/page call `cap.run` — `docs/capabilities.md` |
+| Want an AI assistant to read/propose an operation | Add an `ai` block to its Capability — never hand-write a tool |
 | Action triggers animation before redirect | Transition guard — `grant()` in action, `isActive()` in layout |
 | Writing a new server action | `runAction(pipe(Effect.Do, ...), { actionName, attributes: { workspaceId } })` |
 | Writing a new cached query | `'use cache'` + `tagWith` + `withCacheProfile` + `return runQuery(pipe(...), { queryName, attributes })` |
