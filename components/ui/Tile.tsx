@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 /**
- * Colored bento tile — the building block of the dashboard grid. `plain`
+ * Colored tile — the building block of the dashboard grid. `plain`
  * is the neutral card; **soft** tones tint the bg and set the base text to the
  * tone's *deep* accent (tonal & crisp — never washed-out grey ink) plus a
  * hairline ring of the deep tone for edge definition; **solid** tones fully

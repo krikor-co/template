@@ -7,7 +7,7 @@ describe('lib/i18n/types', () => {
     expect(DEFAULT_LOCALE).toBe('en')
   })
 
-  it('uses app.* cookie identifiers (never irene.*)', () => {
+  it('uses app.* cookie identifiers (never a legacy app-name prefix)', () => {
     expect(LOCALE_COOKIE).toBe('app.locale')
     expect(TZ_COOKIE).toBe('app.tz')
   })

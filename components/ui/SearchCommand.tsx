@@ -76,7 +76,7 @@ export function SearchCommand({
   onQueryChange?: (q: string) => void
   /** Subscribe to an external open signal (the search bus). Returns unsubscribe. */
   subscribeOpen?: (open: () => void) => () => void
-  /** Rendered ABOVE the result list (e.g. the inline ✨ Irene answer block). */
+  /** Rendered ABOVE the result list (e.g. the inline ✨ AI answer block). */
   headerSlot?: React.ReactNode
   /** Rendered as a sticky FOOTER below the list (e.g. the AI toggles). */
   footer?: React.ReactNode

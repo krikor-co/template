@@ -48,7 +48,7 @@ app/workspace/[workspaceId]/
 - Members vs owners: the gate redirects EVERY member of an inactive workspace
   to `/subscribe`; only the `owner` role can check out (action-gated). If your
   app wants a read-only "workspace paused" notice for non-owners instead, add
-  an ungated sibling route (irene's `/inactive` pattern) and branch the gate on
+  an ungated sibling route (e.g. an `/inactive` pattern) and branch the gate on
   the viewer's role.
 
 ## Setup runbook

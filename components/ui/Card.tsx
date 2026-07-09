@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-/** Bento surface — card surface, big radius, soft elevation, borderless by default. */
+/** Card surface — big radius, soft elevation, borderless by default. */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('rounded-3xl bg-card text-card-foreground shadow-card', className)} {...props} />
 }

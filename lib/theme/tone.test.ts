@@ -17,7 +17,7 @@ describe('tone token contract', () => {
     expect(toneColorAlpha('info', 0.2)).toBe('hsl(var(--tone-info) / 0.2)')
   })
 
-  it('narrows unknown values with isTone (old irene names must NOT validate)', () => {
+  it('narrows unknown values with isTone (retired tone names must NOT validate)', () => {
     expect(isTone('positive')).toBe(true)
     expect(isTone('neutral')).toBe(true)
     expect(isTone('calm')).toBe(false)

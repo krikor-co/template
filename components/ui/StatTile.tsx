@@ -5,7 +5,7 @@ import { Delta } from './Delta'
 import { Sparkline } from './Sparkline'
 
 /**
- * The canonical bento KPI tile (matches the references): a tiny mono label +
+ * The canonical KPI tile (matches the references): a tiny mono label +
  * optional leading icon-chip on top, then a DOMINANT tabular number, with an
  * optional sub-line, delta pill, and sparkline. The number is the hero of the
  * tile — large + bold, like every reference dashboard. Color-block via `tone`

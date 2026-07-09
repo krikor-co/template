@@ -1,12 +1,12 @@
 /**
  * AI turn-outcome classification — the taxonomy `ai_call_log.outcome` uses.
  *
- * The load-bearing rule (irene commit 9b1ac1f): INFRA IS NOT A REFUSAL.
+ * The load-bearing rule: INFRA IS NOT A REFUSAL.
  * `unavailable` (gateway outage / over its spend cap), `rate_limited`, and
  * `error` (generic api/gateway failure) are TEMPORARY service problems — they
  * must never be counted as the model refusing, or an outage pollutes every
- * quality metric (irene's $10-cap outage logged thousands of false capability
- * gaps before this split). Genuine turn results:
+ * quality metric (a real gateway spend-cap outage once logged thousands of
+ * false capability gaps before this split). Genuine turn results:
  *
  *   - `answer`  — the model answered from real data.
  *   - `propose` — the model proposed a write (pending user confirm).
