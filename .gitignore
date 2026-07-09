@@ -53,3 +53,7 @@ next-env.d.ts
 /*.png
 playwright_*/
 playwright-artifacts-*/
+
+# playwright harness local install + QA screenshot scratch
+/scripts/playwright/node_modules/
+/tmp/

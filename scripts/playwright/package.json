@@ -1,0 +1,14 @@
+{
+  "name": "app-browser-verification",
+  "private": true,
+  "type": "module",
+  "description": "Browser-verification tooling (Playwright) — isolated from the app's build pipeline. playwright, jose and pg resolve from the repo-root node_modules; `npm install` here only adds @playwright/mcp for machines that pin it locally.",
+  "scripts": {
+    "auth": "node auth-setup.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "devDependencies": {
+    "@playwright/mcp": "^0.0.41",
+    "playwright": "^1.58.2"
+  }
+}
