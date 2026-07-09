@@ -107,13 +107,16 @@ function sanitizeAttributes(attrs: Record<string, unknown>): Record<string, unkn
  * the integer column, dropping the whole batch). Boundary attributes carry RAW
  * caller input (e.g. `input.workspaceId` before validation), so anything that
  * isn't a positive integer is denormalized as null — the full raw value is
- * still preserved in the jsonb `attributes`.
+ * still preserved in the jsonb `attributes`. Exported for tests only.
  */
-function pickPositiveInt(raw: unknown): number | null {
+export function pickPositiveInt(raw: unknown): number | null {
   if (typeof raw === 'number') return Number.isInteger(raw) && raw > 0 ? raw : null
   if (typeof raw === 'string') {
+    // Strict digit strings only — parseInt alone would accept '12abc'/'12.9'
+    // as 12, silently denormalizing garbage input into an id column.
+    if (!/^\d+$/.test(raw)) return null
     const n = Number.parseInt(raw, 10)
-    if (Number.isFinite(n) && n > 0) return n
+    if (Number.isSafeInteger(n) && n > 0) return n
   }
   return null
 }
