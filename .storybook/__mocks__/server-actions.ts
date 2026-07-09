@@ -12,3 +12,4 @@ export const sendLoginOtp = noOp
 
 // VerifyForm/actions.ts
 export const verifyOtpAction = noOp
+export const resendOtpAction = noOp
