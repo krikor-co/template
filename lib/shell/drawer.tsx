@@ -3,6 +3,7 @@
 import { X } from 'lucide-react'
 import { cn } from '../utils'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Drawer({
@@ -22,15 +23,22 @@ export function Drawer({
   // (`overflow-y-auto` on the inner body). Runs before the early return so
   // its cleanup fires when `open` flips back to false.
   useScrollLock(open)
+  // Modal keyboard/focus contract: Escape→onClose (topmost of a stack first),
+  // initial focus into the panel, Tab focus trap, focus restore on close.
+  const panelRef = useDialogBehavior(open, onClose)
 
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        // Focus target of last resort (no focusable children) — outline
+        // suppressed; the ✕ button is normally focused first.
+        tabIndex={-1}
         className={cn(
           // `overflow-hidden` on the panel + `overflow-y-auto` on the inner
           // body means the title row stays pinned at the top while long
@@ -42,7 +50,7 @@ export function Drawer({
           // bottom-pinned content (e.g. a chat composer) just above the
           // keyboard. Form drawers are unaffected (their body still scrolls
           // under the same fixed height).
-          'relative z-50 flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl',
+          'relative z-50 flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl outline-none',
           side === 'right' ? 'ml-auto' : 'mr-auto'
         )}
       >

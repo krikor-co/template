@@ -48,8 +48,9 @@ export function PhoneInput({
         disabled={disabled}
         value={phone.country}
         onChange={(e) => {
-          phone.onChangeCountry(e.target.value as CountryCode)
-          onValueChange?.(phone.e164)
+          // onChangeCountry returns the FRESH e164 — phone.e164 is stale here
+          // (previous render's memo).
+          onValueChange?.(phone.onChangeCountry(e.target.value as CountryCode))
         }}
         className={cn(inputChrome, 'w-28 shrink-0 px-2')}
       >
@@ -69,8 +70,8 @@ export function PhoneInput({
         placeholder={placeholder}
         value={phone.display}
         onChange={(e) => {
-          phone.onChangeNumber(e.target.value)
-          onValueChange?.(phone.e164)
+          // onChangeNumber returns the FRESH e164 — phone.e164 is stale here.
+          onValueChange?.(phone.onChangeNumber(e.target.value))
         }}
         className={inputChrome}
       />

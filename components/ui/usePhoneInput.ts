@@ -19,6 +19,20 @@ export function countryFlag(cc: string): string {
 }
 
 /**
+ * Pure derivation: display value + country → E.164 string. Exported for unit
+ * tests; the hook uses it both for the rendered value (memo) and for the
+ * FRESH value the change handlers return (see below).
+ */
+export function deriveE164(display: string, country: CountryCode): string {
+  const trimmed = display.trim()
+  if (!trimmed) return ''
+  const p = parsePhoneNumberFromString(trimmed, country)
+  if (p) return p.number
+  // best-effort fallback for an in-progress / not-yet-valid number
+  return `+${getCountryCallingCode(country)}${trimmed.replace(/\D/g, '')}`
+}
+
+/**
  * State for {@link PhoneInput}: a selected country + a national-format display
  * value, plus the derived E.164 string the form submits. Seeds country + number
  * by parsing an existing value.
@@ -45,23 +59,24 @@ export function usePhoneInput(
       .sort((a, b) => a.name.localeCompare(b.name, locale))
   }, [locale])
 
-  const e164 = useMemo(() => {
-    const trimmed = display.trim()
-    if (!trimmed) return ''
-    const p = parsePhoneNumberFromString(trimmed, country)
-    if (p) return p.number
-    // best-effort fallback for an in-progress / not-yet-valid number
-    return `+${getCountryCallingCode(country)}${trimmed.replace(/\D/g, '')}`
-  }, [display, country])
+  const e164 = useMemo(() => deriveE164(display, country), [display, country])
 
-  function onChangeNumber(v: string) {
-    setDisplay(new AsYouType(country).input(v))
+  // Both handlers RETURN the freshly derived E.164 (mirroring
+  // useMoneyInput.onChange): `phone.e164` is the previous render's memo, so a
+  // caller notifying `onValueChange` with it would always be one keystroke
+  // behind (and report the pre-change country's number on a country switch).
+  function onChangeNumber(v: string): string {
+    const next = new AsYouType(country).input(v)
+    setDisplay(next)
+    return deriveE164(next, country)
   }
 
-  function onChangeCountry(c: CountryCode) {
-    setCountry(c)
+  function onChangeCountry(c: CountryCode): string {
     // reformat the current digits for the new country
-    setDisplay((prev) => new AsYouType(c).input(prev.replace(/\D/g, '')))
+    const next = new AsYouType(c).input(display.replace(/\D/g, ''))
+    setCountry(c)
+    setDisplay(next)
+    return deriveE164(next, c)
   }
 
   return { country, display, e164, countries, onChangeNumber, onChangeCountry }

@@ -149,12 +149,13 @@ export function Card({ children, ...props }: ShellProps) {
 
 ### Modal (`lib/shell/modal.tsx`)
 
-Caps its height at `max-h-[calc(100dvh-2rem)]` (paired with the container's `p-4`) so tall content scrolls inside `overflow-y-auto overscroll-contain` while the panel and ✕ stay pinned.
+Caps its height at `max-h-[calc(100dvh-2rem)]` (paired with the container's `p-4`) so tall content scrolls inside `overflow-y-auto overscroll-contain` while the panel and ✕ stay pinned. Modal and Drawer share `useDialogBehavior` (`lib/hooks/useDialogBehavior.ts`) for the `aria-modal` keyboard contract: Escape closes (topmost of a stack first), initial focus moves into the panel, Tab is trapped inside it, and focus is restored to the trigger on close.
 
 ```tsx
 'use client'
 
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Modal({
@@ -166,20 +167,27 @@ export function Modal({
   closeLabel?: string
 }) {
   // Lock body scroll while the modal is open (ref-counted; safe to stack with
-  // a drawer underneath). Hook runs before the early return so its cleanup
+  // a drawer underneath). Hooks run before the early return so their cleanup
   // fires when `open` flips back to false.
   useScrollLock(open)
+  // Modal keyboard/focus contract: Escape→onClose (topmost of a stack first),
+  // initial focus into the panel, Tab focus trap, focus restore on close.
+  const panelRef = useDialogBehavior(open, onClose)
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        // Focus target of last resort (no focusable children) — outline
+        // suppressed; the ✕ button is normally focused first.
+        tabIndex={-1}
         // max-h pairs with the container's p-4 (2rem top+bottom): the panel
         // never exceeds the dynamic viewport; a tall body scrolls inside.
-        className="relative z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col rounded-lg bg-background shadow-lg"
+        className="relative z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col rounded-lg bg-background shadow-lg outline-none"
       >
         {/* ✕ pinned to the (non-scrolling) panel so it stays reachable while
             a tall modal body scrolls inside. */}
@@ -211,6 +219,7 @@ Uses `h-[100dvh]` so the panel tracks the dynamic viewport (bottom-pinned conten
 import { X } from 'lucide-react'
 import { cn } from '../utils'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Drawer({
@@ -230,15 +239,22 @@ export function Drawer({
   // (`overflow-y-auto` on the inner body). Runs before the early return so
   // its cleanup fires when `open` flips back to false.
   useScrollLock(open)
+  // Modal keyboard/focus contract: Escape→onClose (topmost of a stack first),
+  // initial focus into the panel, Tab focus trap, focus restore on close.
+  const panelRef = useDialogBehavior(open, onClose)
 
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        // Focus target of last resort (no focusable children) — outline
+        // suppressed; the ✕ button is normally focused first.
+        tabIndex={-1}
         className={cn(
           // `overflow-hidden` on the panel + `overflow-y-auto` on the inner
           // body means the title row stays pinned at the top while long
@@ -250,7 +266,7 @@ export function Drawer({
           // bottom-pinned content (e.g. a chat composer) just above the
           // keyboard. Form drawers are unaffected (their body still scrolls
           // under the same fixed height).
-          'relative z-50 flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl',
+          'relative z-50 flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl outline-none',
           side === 'right' ? 'ml-auto' : 'mr-auto'
         )}
       >
