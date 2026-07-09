@@ -145,3 +145,88 @@ Server actions never try/catch — they use the Effect adapters in
 `lib/effect/auth.ts` (`requireSessionE`, `requireWorkspaceRoleE`,
 `requireAdminE`), which map the guard errors to typed `Unauthenticated` /
 `Forbidden` failures inside the pipe.
+
+## Suspense guard shells
+
+Guard checks are uncached I/O — `cookies()`, the sessions-table lookup,
+membership queries. Under Next 16 Cache Components, a layout that `await`s
+that I/O at its top level **blocks route navigation**: nothing paints until
+the guard resolves. Gated layouts therefore use a three-part shape:
+
+```
+sync layout  →  <Suspense fallback={<Fallback/>}>  →  async shell
+                                                       (uncached I/O +
+                                                        redirect inside
+                                                        the boundary)
+```
+
+1. The **layout is sync** and returns immediately — navigation streams at
+   once.
+2. An **async shell child** does every uncached read (guard, providers,
+   chrome data) and calls `redirect()` on failure. `redirect()` works when
+   thrown inside a Suspense boundary.
+3. The **fallback is footprint-matched**: it mirrors the shell's outer frame
+   (same max-width / padding / grid skeleton) so the fallback → content swap
+   doesn't shift layout.
+
+Worked example — the template's own `/dashboard` chokepoint
+(`app/dashboard/layout.tsx`), pairing the shape with the throw-based
+`requireSession` guard (see "Throw-based data guards" above):
+
+```tsx
+import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
+import { requireSession, SessionGuardError } from '@/lib/auth/session'
+import { route } from './contract'
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<DashboardGuardFallback />}>
+      <DashboardGuard>{children}</DashboardGuard>
+    </Suspense>
+  )
+}
+
+async function DashboardGuard({ children }: { children: React.ReactNode }) {
+  try {
+    await requireSession()
+  } catch (err) {
+    // Only the guard's own sentinel maps to a redirect — anything else is a
+    // real bug and must surface, not silently bounce users to login.
+    if (err instanceof SessionGuardError) redirect(route.exits.login())
+    throw err
+  }
+  return <>{children}</>
+}
+
+function DashboardGuardFallback() {
+  return (
+    <main className="mx-auto w-full max-w-3xl px-4 py-12" aria-busy="true">
+      <div className="space-y-8">
+        <div className="h-24 w-2/3 animate-pulse rounded-lg bg-muted" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="h-24 animate-pulse rounded-lg bg-muted" />
+          <div className="h-24 animate-pulse rounded-lg bg-muted" />
+        </div>
+      </div>
+    </main>
+  )
+}
+```
+
+Rules:
+
+- Never `await` guard I/O in the layout body — always inside the Suspense'd
+  child.
+- Catch only your own guard error (`instanceof XxxGuardError`); **rethrow
+  everything else** so real failures surface instead of masquerading as
+  auth bounces.
+- Keep the fallback in the same file, footprint-matched to the area's frame.
+  A `min-h-screen` spinner that doesn't match the frame causes a visible
+  jump on every navigation into the area.
+- The same shape applies to gated **pages** that redirect — the `/dashboard`
+  dispatcher (`app/dashboard/page.tsx`) and the workspace home
+  (`app/workspace/[workspaceId]/page.tsx`) resolve their uncached I/O inside
+  their own Suspense children for the same reason.
+- As a gated layout grows chrome (sidebar, providers), the chrome moves into
+  the async shell too — guard first, then chrome data, one boundary.

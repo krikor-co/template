@@ -26,7 +26,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`shells.md`](docs/shells.md) | Shell types + full implementation |
 | [`sections.md`](docs/sections.md) | 6 section types, state machines, file map |
 | [`caching.md`](docs/caching.md) | CacheRegistry, tags, invalidation patterns |
-| [`guards.md`](docs/guards.md) | Layout guards, transition guards, cookie returnTo |
+| [`guards.md`](docs/guards.md) | Layout guards, Suspense guard shells, throw-based guards, gate topology, transition guards, cookie returnTo |
 | [`rate-limiting.md`](docs/rate-limiting.md) | createRateLimit, key strategy, storage |
 | [`tenancy.md`](docs/tenancy.md) | Workspaces, memberships, invites, host→workspace middleware, workspace guards |
 | [`feature-flags.md`](docs/feature-flags.md) | Feature registry, 3-scope overrides (global/workspace/user), fail-open nav gating |
@@ -100,6 +100,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 
 **Layout guards**
 - Layouts are the middleware layer — all route-level access control lives in layouts
+- Gated layouts are sync Suspense shells: the guard's uncached I/O (cookies, session, DB) runs in an async child inside `<Suspense>`; `redirect()` fires inside the boundary; the fallback is footprint-matched (see `docs/guards.md` → "Suspense guard shells")
 - Guard functions live in the feature layer (e.g. `app/auth/guards.ts`), never in `lib/`
 - Layouts never use `searchParams` — flow metadata (like `returnTo`) travels via cookies
 - Use `createTransitionGuard` from `lib/transition.ts` when exit animations must play before a layout redirect
@@ -152,7 +153,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | Form needs cross-field validation | `useFormValues({ validate: fn })` + controlled inputs with `useState` |
 | Action returns field-level errors | `form.setErrors(result.fieldErrors)` — display via `form.errors.fieldName` |
 | Need hook logic in a component | Extract to `useXxx.ts` — never inline in component |
-| Route needs access control | Layout guard — redirect in layout, guard fn in feature layer |
+| Route needs access control | Layout guard — sync layout + Suspense'd async shell; guard fn in feature layer; redirect inside the boundary (docs/guards.md) |
 | New app operation (create/update/list/…) | Define ONE Capability (`lib/capabilities`); form/page call `cap.run` — `docs/capabilities.md` |
 | Want an AI assistant to read/propose an operation | Add an `ai` block to its Capability — never hand-write a tool |
 | Action triggers animation before redirect | Transition guard — `grant()` in action, `isActive()` in layout |
