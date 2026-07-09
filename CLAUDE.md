@@ -21,7 +21,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | Doc | What it covers |
 |-----|---------------|
 | [`overview.md`](docs/overview.md) | What the template is, how to get started, reading order |
-| [`pages.md`](docs/pages.md) | Page layer, hierarchy, system overview |
+| [`pages.md`](docs/pages.md) | Page layer, hierarchy, system overview, server-paginated lists (`?page=`/`?q=`) |
 | [`routing.md`](docs/routing.md) | RouteRegistry, entry.ts, contract.ts, exits |
 | [`shells.md`](docs/shells.md) | Shell types + full implementation |
 | [`sections.md`](docs/sections.md) | 6 section types, state machines, file map |

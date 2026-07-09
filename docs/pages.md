@@ -135,3 +135,88 @@ page.tsx  ← RouteRegistry: parses URL into typed params via route.entry.parse(
     └── actions.ts ← mutates data, invalidates cache, returns domain result
 </Shell.Card>
 ```
+
+## Server-paginated lists — the `page` param contract
+
+Lists that can grow unbounded paginate **server-side** (SQL `LIMIT`/`OFFSET`)
+with the URL as the single source of list state — a list URL is shareable and
+refresh-safe by construction. The contract:
+
+- `?page=` — 1-based page number. The route's `entry.ts` owns parsing:
+  coerce to a positive integer, default `1`, never trust the raw string.
+- `?q=` — optional keyword filter. Trimmed; omitted when empty.
+- Every other active filter travels in the URL the same way, and
+  `entry.href` is the ONLY place list URLs are built.
+
+```typescript
+// entry.ts — page/q are part of the route's typed contract
+import { z } from 'zod'
+import type { ParseContext } from '@/lib/route-registry'
+
+const schema = z.object({
+  page: z.coerce.number().int().min(1).catch(1),
+  q:    z.string().trim().min(1).optional().catch(undefined),
+})
+
+export type Params = z.infer<typeof schema>
+
+export const entry = {
+  href: (p: Partial<Params> = {}) => {
+    const qs = new URLSearchParams()
+    if (p.q) qs.set('q', p.q)
+    if (p.page && p.page > 1) qs.set('page', String(p.page))
+    const s = qs.toString()
+    return s ? `/things?${s}` : '/things'
+  },
+  parse: (ctx: ParseContext) => schema.parse(ctx.searchParams),
+}
+```
+
+The section's `query.ts` selects `LIMIT pageSize OFFSET (page - 1) * pageSize`
+— fetch `pageSize + 1` rows to learn whether a next page exists without a
+second COUNT round-trip. The **page** computes the prev/next hrefs from its
+OWN `entry.href` (preserving every active filter) and passes them to the
+`ListPager` client island as plain strings:
+
+```tsx
+// page.tsx
+const entryParams = route.entry.parse(ctx)
+const { rows, hasMore, total } = await listThings(entryParams)
+
+const prevHref = entryParams.page > 1
+  ? route.entry.href({ ...entryParams, page: entryParams.page - 1 })
+  : null
+const nextHref = hasMore
+  ? route.entry.href({ ...entryParams, page: entryParams.page + 1 })
+  : null
+
+return (
+  <ListPager
+    prevHref={prevHref}
+    nextHref={nextHref}
+    rangeLabel={`${start}–${end} of ${total}`}
+    pageLabel={`Page ${entryParams.page}`}
+    prevLabel="Previous page"
+    nextLabel="Next page"
+  >
+    {/* server-rendered rows */}
+  </ListPager>
+)
+```
+
+`ListPager` (`components/ui/ListPager.tsx` + `useListPager.ts`) wraps
+`router.push` in a `startTransition` so the current rows stay on screen
+(dimmed) while the next page streams in — a plain `<Link>` would re-suspend
+the section and flash its skeleton. It never builds URLs: the server passes
+finished hrefs in, so nothing route-specific leaks into the island and the
+no-raw-URL-strings invariant holds (the hrefs come from `entry.href`).
+
+Keyword search rides the same contract: `ListSearchBox`
+(`components/ui/ListSearchBox.tsx`) + `useListSearch`
+(`lib/list/useListSearch.ts`) debounce the input 300ms, then push
+`?q=<term>` — REPLACING the whole query string, which deliberately drops
+`?page=` so a new search resets to page 1.
+
+Client-side instant filtering is for lists that are already fully loaded on
+the client; the moment a list paginates on the server, every filter must
+travel through the URL so the SQL query sees it.
