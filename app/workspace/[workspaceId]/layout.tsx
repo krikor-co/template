@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireWorkspaceRole, WorkspaceGuardError } from '@/app/workspace/guards'
+import { LocaleProvider } from '@/lib/i18n/LocaleProvider'
+import { getCurrentLocale } from '@/lib/i18n/getLocale'
 import { route } from './contract'
 
 export default async function WorkspaceLayout({
@@ -18,5 +20,6 @@ export default async function WorkspaceLayout({
     }
     redirect(route.exits.dashboard())
   }
-  return <>{children}</>
+  const locale = await getCurrentLocale()
+  return <LocaleProvider locale={locale}>{children}</LocaleProvider>
 }
