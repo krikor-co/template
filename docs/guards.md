@@ -230,3 +230,84 @@ Rules:
   their own Suspense children for the same reason.
 - As a gated layout grows chrome (sidebar, providers), the chrome moves into
   the async shell too — guard first, then chrome data, one boundary.
+
+## Gate topology
+
+Where gates LIVE matters as much as what they check. Three rules keep gated
+areas loop-free:
+
+**1. One chokepoint layout per protected area.** Every check for an area
+chains in a single layout, ordered by severity — auth first, then
+business gates (subscription, setup lock, …). Pages under it never
+re-implement the gate. The template's chokepoints: `app/dashboard/layout.tsx`
+(session) and `app/workspace/[workspaceId]/layout.tsx` (workspace role).
+
+**2. Escape routes are ungated siblings.** Every redirect target of a gate
+must live OUTSIDE the layout that issues the redirect, or the gate re-runs
+on arrival and loops forever. In the template: the dashboard guard bounces
+to `/auth/identify` (not under `/dashboard`); the workspace guard's
+`forbidden` branch bounces to `/dashboard` (not under `/workspace`); the
+dispatcher's zero-membership branch bounces to `/onboarding` (a sibling of
+`/dashboard`, deliberately not under it). When you add a paywall gate,
+its `/subscribe`-style target must be a sibling of the gated area for the
+same reason.
+
+**3. Route groups keep same-prefix public routes out of the gate.** When a
+public page must share a URL prefix with a gated area, use a route group —
+groups add no URL segment, which is exactly what makes this work:
+
+```
+app/workspace/[workspaceId]/(gated)/layout.tsx   ← the chokepoint guard
+app/workspace/[workspaceId]/(gated)/settings/…   ← gated, URL /workspace/:id/settings
+app/workspace/[workspaceId]/join/page.tsx        ← public, URL /workspace/:id/join
+```
+
+Without the group, the only alternatives are gating `join` (breaking the
+public flow) or moving it to an unrelated prefix (breaking the URL design).
+
+## Onboarding-checklist gates
+
+The distilled lesson of a ~100-commit arc in a production app built on this
+template: a multi-step onboarding WIZARD that must complete before the app
+unlocks fights the user — blank re-entry (wizards rarely rehydrate persisted
+answers), lost progress, no escape. The shape that survived:
+
+1. **A checklist route, not a wizard.** One page (e.g. `/workspace/:id/setup`)
+   listing setup items grouped by importance ("essential" vs "later"). Each
+   row links to the REAL feature screen where the work happens — the
+   checklist owns no forms of its own.
+2. **Per-item readiness predicates derive ✓ from real data.** Never store
+   "step 3 done" flags. Compute each item from the tables the item is about
+   (e.g. `services` is done when the workspace has ≥ 1 active service row;
+   `payment` when a payment option exists). Re-entry is always accurate and
+   there is nothing to hydrate. Keep the predicates in one pure, unit-tested
+   module returning `{ items: Record<ItemKey, boolean>, essentialsDone,
+   visibleKeys, essentialKeys }` — visibility and essentials may vary by
+   tenant profile (a solo workspace drops the "invite your team" item).
+3. **The layout lock is a chokepoint gate with a release valve.** The area
+   layout (topology rule 1) bounces to the checklist ONLY while onboarding
+   has started AND is neither completed nor dismissed. Store
+   `completedAt` / `dismissedAt` timestamps on a per-workspace setup row;
+   the whole gate is one pure predicate:
+
+   ```typescript
+   // Bounce ONLY a workspace that started onboarding (row present with
+   // signals) but hasn't finished and hasn't opted out. Pre-existing
+   // workspaces (no row) are never trapped.
+   export function shouldBounceToSetup(
+     row: { signals: unknown; completedAt: Date | null; dismissedAt: Date | null } | null,
+   ): boolean {
+     if (!row) return false
+     if (row.completedAt || row.dismissedAt) return false
+     return row.signals != null
+   }
+   ```
+
+4. **The checklist route is an escape sibling** (topology rule 2): it lives
+   OUTSIDE the locked layout and always renders a reachable skip/dismiss
+   action — the lock must never dead-end. Bounce to the CHECKLIST, never
+   into a wizard step.
+
+Ship the gate as three pieces: a cached readiness/gate-state query, the pure
+gate predicate (unit-testable, like the snippet above), and the layout
+chokepoint calling both inside its Suspense shell.
