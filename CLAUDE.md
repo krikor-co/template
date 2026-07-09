@@ -41,6 +41,7 @@ CacheRegistry  →  data invalidation (typed, hierarchical cache tags)
 | [`schema.md`](docs/schema.md) | Entity-first database modeling |
 | [`commands.md`](docs/commands.md) | Scaffold commands for routes, sections, features |
 | [`planning.md`](docs/planning.md) | Design flow specs, planning process, implementation handoff |
+| [`billing.md`](docs/billing.md) | Workspace billing: Stripe gates, escape-route topology, cancel/resume, webhook |
 | [`blob.md`](docs/blob.md) | Vercel Blob uploads: `uploadImage` action, authed `/api/blob-image` proxy, ImageUpload/AvatarField |
 | [`realtime.md`](docs/realtime.md) | Workspace pulse: best-effort liveness bump + SSE nudge, `<WorkspaceLive>` |
 | [`cron.md`](docs/cron.md) | Cron convention: fail-closed `CRON_SECRET` gate, job catalog, per-tenant local-hour fan-out |
