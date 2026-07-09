@@ -100,9 +100,17 @@ function sanitizeAttributes(attrs: Record<string, unknown>): Record<string, unkn
   return out
 }
 
-function pickWorkspaceId(attrs: Record<string, unknown>): number | null {
-  const raw = attrs.workspaceId
-  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
+/**
+ * Attribute → nullable positive-int column. ONE helper for both id columns so
+ * the number and string paths can't drift (the number path previously accepted
+ * 0/negative/float values the string path rejected — and a float would fail
+ * the integer column, dropping the whole batch). Boundary attributes carry RAW
+ * caller input (e.g. `input.workspaceId` before validation), so anything that
+ * isn't a positive integer is denormalized as null — the full raw value is
+ * still preserved in the jsonb `attributes`.
+ */
+function pickPositiveInt(raw: unknown): number | null {
+  if (typeof raw === 'number') return Number.isInteger(raw) && raw > 0 ? raw : null
   if (typeof raw === 'string') {
     const n = Number.parseInt(raw, 10)
     if (Number.isFinite(n) && n > 0) return n
@@ -110,12 +118,8 @@ function pickWorkspaceId(attrs: Record<string, unknown>): number | null {
   return null
 }
 
-function pickUserId(attrs: Record<string, unknown>): number | null {
-  const raw = attrs.userId
-  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
-  if (typeof raw === 'string') {
-    const n = Number.parseInt(raw, 10)
-    if (Number.isFinite(n) && n > 0) return n
-  }
-  return null
-}
+const pickWorkspaceId = (attrs: Record<string, unknown>): number | null =>
+  pickPositiveInt(attrs.workspaceId)
+
+const pickUserId = (attrs: Record<string, unknown>): number | null =>
+  pickPositiveInt(attrs.userId)

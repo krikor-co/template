@@ -1,5 +1,5 @@
 {
-  "id": "27b51de8-dbd9-4a38-839c-d22c8f9e8e4b",
+  "id": "090701d6-c1d5-456b-ad3f-91a0fc7875ef",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1292,21 +1292,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "trace_span_workspace_id_workspaces_id_fk": {
-          "name": "trace_span_workspace_id_workspaces_id_fk",
-          "tableFrom": "trace_span",
-          "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

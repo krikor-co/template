@@ -1,5 +1,4 @@
 import { index, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
-import { workspaces } from './workspaces'
 
 /**
  * Custom OTel span storage — every `Effect.withSpan(...)` boundary call
@@ -11,12 +10,15 @@ import { workspaces } from './workspaces'
  *   - "recent activity"                → (created_at DESC)
  *
  * workspace_id / user_id are denormalized from span attributes for fast
- * filtering. `workspace_id` references `workspaces.id` (workspaces are only
- * soft-deleted, so spans are never orphaned by a hard delete). `user_id`
- * stays a plain nullable integer on purpose — no FK: spans are observation
- * infrastructure and must survive row deletion of the users they reference.
- * Purge old rows with a retention cron. If error volume grows, add a partial
- * index on status = 'error' via custom SQL.
+ * filtering. BOTH stay plain nullable integers on purpose — no FK: spans are
+ * observation infrastructure and must never be rejected by referential
+ * integrity. The `workspaceId` attribute is stamped at the boundary from RAW
+ * caller input before validation, so a single span carrying a nonexistent id
+ * would FK-abort the exporter's whole batch INSERT and silently drop every
+ * span in it (the exporter fails open by design). Same rationale as user_id:
+ * spans must also survive row deletion of what they reference. Purge old rows
+ * with a retention cron. If error volume grows, add a partial index on
+ * status = 'error' via custom SQL.
  */
 export const traceSpan = pgTable('trace_span', {
   spanId:       text('span_id').primaryKey(),
@@ -28,7 +30,7 @@ export const traceSpan = pgTable('trace_span', {
   status:       text('status').notNull(),        // 'ok' | 'error' | 'unset'
   attributes:   jsonb('attributes').notNull().default({}),
   errorMessage: text('error_message'),
-  workspaceId:  integer('workspace_id').references(() => workspaces.id), // denormalized from attributes for fast tenant filtering
+  workspaceId:  integer('workspace_id'),         // denormalized from attributes for fast tenant filtering — deliberately NO FK (see above)
   userId:       integer('user_id'),              // denormalized from attributes — WHO acted
   createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [

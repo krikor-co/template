@@ -207,12 +207,6 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
-DO $$ BEGIN
- ALTER TABLE "trace_span" ADD CONSTRAINT "trace_span_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE no action ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "persons_email_unique" ON "persons" USING btree ("email") WHERE "persons"."email" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "persons_phone_unique" ON "persons" USING btree ("phone_number") WHERE "persons"."phone_number" IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "workspaces_slug_unique" ON "workspaces" USING btree ("slug") WHERE "workspaces"."slug" IS NOT NULL;--> statement-breakpoint
