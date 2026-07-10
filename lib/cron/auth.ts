@@ -12,10 +12,25 @@
  * Response as-is.
  */
 
+import { createHash, timingSafeEqual } from 'node:crypto'
+
+/**
+ * Constant-time secret comparison. Both sides are hashed to a fixed 32 bytes
+ * first, so `timingSafeEqual` never throws on a length mismatch and the
+ * comparison leaks neither content nor length via timing.
+ */
+function secretEquals(a: string, b: string): boolean {
+  const ah = createHash('sha256').update(a).digest()
+  const bh = createHash('sha256').update(b).digest()
+  return timingSafeEqual(ah, bh)
+}
+
 /** True when the request carries the expected secret via either convention. */
 export function isCronAuthorized(req: Request, expected: string): boolean {
-  if (req.headers.get('x-cron-secret') === expected) return true
-  if (req.headers.get('authorization') === `Bearer ${expected}`) return true
+  const viaHeader = req.headers.get('x-cron-secret')
+  if (viaHeader !== null && secretEquals(viaHeader, expected)) return true
+  const viaAuth = req.headers.get('authorization')
+  if (viaAuth !== null && secretEquals(viaAuth, `Bearer ${expected}`)) return true
   return false
 }
 
