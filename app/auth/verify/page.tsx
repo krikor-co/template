@@ -1,14 +1,33 @@
+import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { VerifyForm } from './_components/VerifyForm/VerifyForm'
 import type { State } from './_components/VerifyForm/state'
-import { AUTH_RETURN_TO_COOKIE } from '@/app/auth/guards'
+import { getAuthIdentifier, AUTH_RETURN_TO_COOKIE, transitions } from '@/app/auth/guards'
+import { entry as identifyEntry } from '@/app/auth/identify/entry'
+import { safeReturnTo } from '@/lib/return-to'
 
 export default async function VerifyPage() {
-  const cookieStore = await cookies()
-  const email = cookieStore.get('auth_email')?.value as string
-  const returnTo = cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value
+  const auth = await getAuthIdentifier()
+  // On success the verify action sets the session AND clears the identifier
+  // cookie, then triggers a re-render of this route — at which point `auth`
+  // is null. Without this guard the page would bounce to /identify (and
+  // then, now logged-in, to the dashboard) BEFORE the client VerifySuccess
+  // animation can paint. So, like the auth LAYOUT, respect the verify
+  // transition guard: while it's active, stay on this route so the client
+  // success scene plays out and drives its own delayed redirect.
+  if (!auth && !(await transitions.verify.isActive())) redirect(identifyEntry.href())
 
-  const initialState: State = { status: 'idle', email }
+  const cookieStore = await cookies()
+  // Same-origin only — this value feeds the client's router.push on verify
+  // success, which would happily navigate to an absolute URL.
+  const returnTo = safeReturnTo(cookieStore.get(AUTH_RETURN_TO_COOKIE)?.value) ?? undefined
+
+  // During the success transition `auth` is null (cookie cleared) but the
+  // client VerifyForm is already in its `success` state and is preserved
+  // across this re-render — these idle fallbacks are never actually shown.
+  const initialState: State = auth
+    ? { status: 'idle', identifier: auth.identifier, identifierType: auth.type }
+    : { status: 'idle', identifier: '', identifierType: 'email' }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">

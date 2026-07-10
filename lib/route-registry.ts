@@ -9,7 +9,6 @@ export type Entry<P> = {
   parse: (ctx: ParseContext) => P
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExitFn = (...args: any[]) => string
 
 export type Route<P = unknown, E extends Record<string, ExitFn> = Record<string, ExitFn>> = {

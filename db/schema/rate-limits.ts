@@ -5,7 +5,7 @@ export const rateLimits = pgTable('rate_limits', {
   key:         text('key').notNull(),
   action:      text('action').notNull(),
   count:       integer('count').notNull().default(1),
-  windowStart: timestamp('window_start').defaultNow().notNull(),
+  windowStart: timestamp('window_start', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => ({
   lookupIdx: index('rate_limits_key_action_idx').on(t.key, t.action),
 }))

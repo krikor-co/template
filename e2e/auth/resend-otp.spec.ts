@@ -17,7 +17,7 @@ test.describe('resend OTP', () => {
     await page.goto('/auth/identify')
     await page.waitForLoadState('networkidle')
     await page.clock.fastForward(1200)
-    await page.fill('input[name="email"]', email)
+    await page.fill('input[name="identifier"]', email)
     await page.click('button[type="submit"]')
     await page.waitForURL('**/auth/register', { timeout: 10_000 })
 

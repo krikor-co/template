@@ -6,10 +6,10 @@ export const otpCodes = pgTable(
     id:        integer('id').primaryKey().generatedAlwaysAsIdentity(),
     email:     text('email').notNull(),
     code:      text('code').notNull(),
-    expiresAt: timestamp('expires_at').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     used:      boolean('used').notNull().default(false),
     attempts:  integer('attempts').notNull().default(0),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
     emailIdx:     index('otp_codes_email_idx').on(t.email),

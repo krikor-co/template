@@ -6,6 +6,7 @@ import type { State } from './state'
 import { route } from '../../contract'
 import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import { useFormValues } from '@/lib/hooks/useFormValues'
+import { useT } from '@/lib/i18n/LocaleProvider'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Label } from '@/components/ui/Label'
@@ -13,6 +14,7 @@ import { Label } from '@/components/ui/Label'
 export function LoginForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
+  const t = useT()
   useRedirectOnSuccess(state, [reset, form.reset])
 
   const handleSubmit = async (formData: FormData) => {
@@ -23,33 +25,42 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
     else send({ type: 'ERROR', message: result.error })
   }
 
+  const header = (
+    <div key="header" className="text-center">
+      <h1 className="mb-2 text-3xl font-semibold tracking-tight">{t.auth.identify.title}</h1>
+      <p className="text-muted-foreground">{t.auth.identify.subtitle}</p>
+    </div>
+  )
+
   switch (state.status) {
     case 'idle':
     case 'submitting':
     case 'error':
       return (
         <div key="login" className="space-y-8">
-          <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Enter your email to continue</p>
-          </div>
+          {header}
           <form key="form" action={handleSubmit} className="space-y-4">
             {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">{t.auth.identify.identifierLabel}</Label>
               <Input
-                key="email"
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                key="identifier"
+                id="identifier"
+                name="identifier"
+                type="text"
+                inputMode="email"
+                autoComplete="email tel"
+                aria-describedby="identifier-help"
                 required
-                defaultValue={form.values.email}
+                defaultValue={form.values.identifier}
                 onChange={() => {
                   if (state.status === 'error') send({ type: 'RETRY' })
                 }}
-                placeholder="you@example.com"
+                placeholder={t.auth.identify.identifierPlaceholder}
               />
+              <p id="identifier-help" className="text-xs text-muted-foreground">
+                {t.auth.identify.identifierHelp}
+              </p>
             </div>
 
             {state.status === 'error' && (
@@ -57,7 +68,7 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
             )}
 
             <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
-              {state.status === 'submitting' ? 'Checking for account…' : 'Log in'}
+              {state.status === 'submitting' ? t.auth.identify.submitting : t.auth.identify.submit}
             </Button>
           </form>
         </div>
@@ -65,20 +76,17 @@ export function LoginForm({ initialState, returnTo }: { initialState: State; ret
     case 'success':
       return (
         <div key="login" className="space-y-8">
-          <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground">Enter your email to continue</p>
-          </div>
+          {header}
           <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input key="email" id="email" name="email" type="email" disabled defaultValue={form.values.email} placeholder="you@example.com" />
+              <Label htmlFor="identifier">{t.auth.identify.identifierLabel}</Label>
+              <Input key="identifier" id="identifier" name="identifier" type="text" disabled defaultValue={form.values.identifier} placeholder={t.auth.identify.identifierPlaceholder} />
             </div>
 
-            <p className="text-sm text-muted-foreground">Redirecting…</p>
+            <p className="text-sm text-muted-foreground">{t.common.redirecting}</p>
 
             <Button key="submit" type="button" disabled>
-              Redirecting…
+              {t.common.redirecting}
             </Button>
           </form>
         </div>

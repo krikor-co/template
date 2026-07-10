@@ -10,13 +10,13 @@ import type { Page } from '@playwright/test'
  */
 const SCENE_MIN_STAY_MS = 1100
 
-export async function completeIdentifyStep(page: Page, email: string) {
+export async function completeIdentifyStep(page: Page, identifier: string) {
   await page.goto('/auth/identify')
   // Wait for the page to be fully interactive (JS loaded + hydrated) before
   // starting the minStay countdown, otherwise the wait may not be long enough.
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(SCENE_MIN_STAY_MS)
-  await page.fill('input[name="email"]', email)
+  await page.fill('input[name="identifier"]', identifier)
   await page.click('button[type="submit"]')
 }
 

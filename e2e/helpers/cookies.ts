@@ -1,13 +1,15 @@
 import type { BrowserContext } from '@playwright/test'
 
-export async function setAuthEmailCookie(
+export async function setAuthIdentifierCookie(
   context: BrowserContext,
-  email: string,
+  identifier: string,
+  identifierType: 'phone' | 'email' = 'email',
   isNew = false
 ) {
   const base = { domain: 'localhost', path: '/' }
   await context.addCookies([
-    { name: 'auth_email', value: email, ...base },
+    { name: 'auth_identifier', value: identifier, ...base },
+    { name: 'auth_identifier_type', value: identifierType, ...base },
     ...(isNew ? [{ name: 'auth_is_new', value: '1', ...base }] : []),
   ])
 }

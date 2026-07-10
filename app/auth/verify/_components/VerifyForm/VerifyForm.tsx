@@ -7,15 +7,20 @@ import type { State } from './state'
 import { route } from '../../contract'
 import { useRedirectOnSuccess } from '@/lib/hooks/useRedirectOnSuccess'
 import { useFormValues } from '@/lib/hooks/useFormValues'
-import { Input } from '@/components/ui/Input'
+import { useT } from '@/lib/i18n/LocaleProvider'
+import { OtpInput } from '@/components/ui/OtpInput'
 import { Button } from '@/components/ui/Button'
 import { Label } from '@/components/ui/Label'
+import { VerifySuccess } from './VerifySuccess'
 
 export function VerifyForm({ initialState, returnTo }: { initialState: State; returnTo?: string }) {
   const [state, send, reset] = scene.useScene(initialState)
   const form = useFormValues()
-  const resendOtp = useResendOtp(initialState.email)
+  const t = useT()
+  const resendOtp = useResendOtp(initialState.identifier, initialState.identifierType)
   useRedirectOnSuccess(state, [reset, form.reset], 2000)
+
+  const title = state.identifierType === 'email' ? t.auth.verify.titleEmail : t.auth.verify.titlePhone
 
   const handleSubmit = async (formData: FormData) => {
     form.capture(formData)
@@ -25,38 +30,41 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
     else send({ type: 'ERROR', message: result.error })
   }
 
+  const header = (
+    <div key="header" className="text-center">
+      <h1 className="mb-2 text-3xl font-semibold tracking-tight">{title}</h1>
+      <p className="text-muted-foreground">
+        {t.auth.verify.sentTo} <strong className="tabular-nums">{state.identifier}</strong>
+      </p>
+    </div>
+  )
+
   switch (state.status) {
     case 'idle':
     case 'submitting':
     case 'error':
       return (
         <div key="verify" className="space-y-8">
-          <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Check your email</h1>
-            <p className="text-muted-foreground">
-              We sent a 6-digit code to <strong>{state.email}</strong>
-            </p>
-          </div>
+          {header}
           <form key="form" action={handleSubmit} className="space-y-4">
-            <input type="hidden" name="email" value={state.email} />
+            <input type="hidden" name="identifier" value={state.identifier} />
+            <input type="hidden" name="identifierType" value={state.identifierType} />
 
             <div className="space-y-2">
-              <Label htmlFor="code">Verification code</Label>
-              <Input
-                key="code"
+              <Label htmlFor="code">{t.auth.verify.codeLabel}</Label>
+              {/* Segmented input-otp field: one real hidden <input name="code">
+                  drives six styled slots — numeric-only, OS one-time-code
+                  autofill, paste fills every box. The form contract (and
+                  e2e page.fill('input[name="code"]')) is unchanged. */}
+              <OtpInput
                 id="code"
                 name="code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                required
+                autoFocus
                 defaultValue={form.values.code}
+                hasError={state.status === 'error'}
                 onChange={() => {
                   if (state.status === 'error') send({ type: 'RETRY' })
                 }}
-                className="py-2.5 text-center text-2xl tracking-widest"
-                placeholder="000000"
               />
             </div>
 
@@ -65,30 +73,30 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
             )}
 
             <Button key="submit" type="submit" disabled={state.status === 'submitting'}>
-              {state.status === 'submitting' ? 'Verifying…' : 'Verify code'}
+              {state.status === 'submitting' ? t.auth.verify.submitting : t.auth.verify.submit}
             </Button>
           </form>
 
           <div key="resend" className="text-center text-sm">
             {resendOtp.status === 'waiting' && (
-              <p className="text-muted-foreground">Resend code in {resendOtp.secondsLeft}s</p>
+              <p className="text-muted-foreground">{t.auth.verify.resendIn(resendOtp.secondsLeft)}</p>
             )}
             {resendOtp.status === 'ready' && (
               <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
-                Resend code
+                {t.auth.verify.resend}
               </button>
             )}
             {resendOtp.status === 'sending' && (
-              <p className="text-muted-foreground">Sending…</p>
+              <p className="text-muted-foreground">{t.auth.verify.sending}</p>
             )}
             {resendOtp.status === 'sent' && (
-              <p className="text-muted-foreground">Code sent!</p>
+              <p className="text-muted-foreground">{t.auth.verify.sent}</p>
             )}
             {resendOtp.status === 'error' && (
               <div className="space-y-1">
                 <p className="text-destructive">{resendOtp.error}</p>
                 <button type="button" onClick={resendOtp.resend} className="text-primary underline-offset-4 hover:underline">
-                  Try again
+                  {t.common.tryAgain}
                 </button>
               </div>
             )}
@@ -98,33 +106,8 @@ export function VerifyForm({ initialState, returnTo }: { initialState: State; re
     case 'success':
       return (
         <div key="verify" className="space-y-8">
-          <div key="header" className="text-center">
-            <h1 className="mb-2 text-3xl font-semibold tracking-tight">Check your email</h1>
-            <p className="text-muted-foreground">
-              We sent a 6-digit code to <strong>{state.email}</strong>
-            </p>
-          </div>
-          <form key="form" className="space-y-4 opacity-60" onSubmit={(e) => e.preventDefault()}>
-            <div className="space-y-2">
-              <Label htmlFor="code">Verification code</Label>
-              <Input
-                key="code"
-                id="code"
-                name="code"
-                type="text"
-                disabled
-                defaultValue={form.values.code}
-                className="py-2.5 text-center text-2xl tracking-widest"
-                placeholder="000000"
-              />
-            </div>
-
-            <p className="text-sm text-muted-foreground">Verified! Redirecting…</p>
-
-            <Button key="submit" type="button" disabled>
-              Redirecting…
-            </Button>
-          </form>
+          {header}
+          <VerifySuccess title={t.auth.verify.successTitle} hint={t.auth.verify.successHint} />
         </div>
       )
   }

@@ -11,6 +11,7 @@ The Shell wraps a Section and provides:
 - `@container` queries so sections can respond to their container's width
 - An error boundary that catches runtime errors and offers a refresh affordance
 - `title`, `onRefresh`, and `onFeedback` global affordances
+- Overlay shells (Modal / Drawer) lock body scroll (`useScrollLock`, ref-counted for stacked overlays), carry dialog ARIA (`role="dialog"`, `aria-modal`, `aria-label={ariaLabel ?? title ?? 'Dialog'/'Panel'}` — a dialog always has an accessible name, even with no visible title), and pin an aria-labeled ✕ (`closeLabel` prop, default `'Close'`) to the non-scrolling panel while the body scrolls inside
 - Structural layout (full-page, card, modal, drawer)
 
 Sections **never** import or reference the Shell. The Shell is always the caller's concern — `page.tsx` or a parent component decides which Shell to use.
@@ -97,15 +98,15 @@ class SceneErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="space-y-2 p-4 text-center">
-          <p className="text-sm text-destructive">Something went wrong.</p>
+        <div className="space-y-3 rounded-lg bg-destructive-soft p-6 text-center">
+          <p className="text-sm font-medium text-destructive-deep">Something went wrong.</p>
           {this.props.onRefresh && (
             <button
               onClick={() => {
                 this.setState({ hasError: false })
                 this.props.onRefresh?.()
               }}
-              className="text-sm underline"
+              className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               Try again
             </button>
@@ -148,26 +149,65 @@ export function Card({ children, ...props }: ShellProps) {
 
 ### Modal (`lib/shell/modal.tsx`)
 
+Caps its height at `max-h-[calc(100dvh-2rem)]` (paired with the container's `p-4`) so tall content scrolls inside `overflow-y-auto overscroll-contain` while the panel and ✕ stay pinned. Modal and Drawer share `useDialogBehavior` (`lib/hooks/useDialogBehavior.ts`) for the `aria-modal` keyboard contract: Escape closes (topmost of a stack first), initial focus moves into the panel, Tab is trapped inside it, and focus is restored to the trigger on close.
+
 ```tsx
 'use client'
 
+import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Modal({
-  children, open, onClose, ...props
-}: ShellProps & { open: boolean; onClose: () => void }) {
+  children, open, onClose, closeLabel = 'Close', ariaLabel, title, ...props
+}: ShellProps & {
+  open: boolean
+  onClose: () => void
+  /** Accessible label for the pinned ✕ button. Override for non-English UIs. */
+  closeLabel?: string
+  /** Accessible name for the dialog. Defaults to `title`, then `'Dialog'` — set it when the modal has no visible title (and for non-English UIs). */
+  ariaLabel?: string
+}) {
+  // Lock body scroll while the modal is open (ref-counted; safe to stack with
+  // a drawer underneath). Hooks run before the early return so their cleanup
+  // fires when `open` flips back to false.
+  useScrollLock(open)
+  // Modal keyboard/focus contract: Escape→onClose (topmost of a stack first),
+  // initial focus into the panel, Tab focus trap, focus restore on close.
+  const panelRef = useDialogBehavior(open, onClose)
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-50 w-full max-w-lg rounded-lg bg-background p-6 shadow-lg">
-        <ShellBase {...props}>{children}</ShellBase>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        // A dialog must always have an accessible name (aria-modal without a
+        // name is a WCAG gap) — fall back to a generic one when `title` is
+        // omitted; `ariaLabel` overrides both.
+        aria-label={ariaLabel ?? title ?? 'Dialog'}
+        // Focus target of last resort (no focusable children) — outline
+        // suppressed; the ✕ button is normally focused first.
+        tabIndex={-1}
+        // max-h pairs with the container's p-4 (2rem top+bottom): the panel
+        // never exceeds the dynamic viewport; a tall body scrolls inside.
+        className="relative z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col rounded-lg bg-background shadow-lg outline-none"
+      >
+        {/* ✕ pinned to the (non-scrolling) panel so it stays reachable while
+            a tall modal body scrolls inside. */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+          aria-label={closeLabel}
+          title={closeLabel}
+          className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           ✕
         </button>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+          <ShellBase title={title} {...props}>{children}</ShellBase>
+        </div>
       </div>
     </div>
   )
@@ -176,24 +216,95 @@ export function Modal({
 
 ### Drawer (`lib/shell/drawer.tsx`)
 
+Uses `h-[100dvh]` so the panel tracks the dynamic viewport (bottom-pinned content stays above the mobile keyboard when the root viewport sets `interactiveWidget: 'resizes-content'`). Default drawers scroll their body; pass `fill` when the content owns its scroll (chat-style: scrolling list + pinned composer).
+
 ```tsx
 'use client'
 
+import { X } from 'lucide-react'
 import { cn } from '../utils'
+import { useScrollLock } from '../hooks/useScrollLock'
+import { useDialogBehavior } from '../hooks/useDialogBehavior'
 import { ShellBase, type ShellProps } from './shell-base'
 
 export function Drawer({
-  children, open, onClose, side = 'right', ...props
-}: ShellProps & { open: boolean; onClose: () => void; side?: 'left' | 'right' }) {
+  children, open, onClose, side = 'right', closeLabel = 'Close', fill = false, ariaLabel, title, ...props
+}: ShellProps & {
+  open: boolean
+  onClose: () => void
+  side?: 'left' | 'right'
+  /** Accessible label for the pinned ✕ button. Override for non-English UIs. */
+  closeLabel?: string
+  /** Accessible name for the dialog. Defaults to `title`, then `'Panel'` — set it when the drawer has no visible title (and for non-English UIs). */
+  ariaLabel?: string
+  /** Non-scrolling full-height flex column; the content owns the scroll (e.g. chat: scrolling messages + pinned composer). */
+  fill?: boolean
+}) {
+  // Lock body scroll while the drawer is open so the page underneath can't
+  // scroll behind it (ref-counted shared hook — overflow:hidden + scrollbar
+  // compensation). Drawer content gets its own scroll container below
+  // (`overflow-y-auto` on the inner body). Runs before the early return so
+  // its cleanup fires when `open` flips back to false.
+  useScrollLock(open)
+  // Modal keyboard/focus contract: Escape→onClose (topmost of a stack first),
+  // initial focus into the panel, Tab focus trap, focus restore on close.
+  const panelRef = useDialogBehavior(open, onClose)
+
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className={cn(
-        'relative z-50 flex h-full w-full max-w-md flex-col bg-background p-6 shadow-xl',
-        side === 'right' ? 'ml-auto' : 'mr-auto'
-      )}>
-        <ShellBase {...props}>{children}</ShellBase>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        // A dialog must always have an accessible name (aria-modal without a
+        // name is a WCAG gap) — fall back to a generic one when `title` is
+        // omitted; `ariaLabel` overrides both.
+        aria-label={ariaLabel ?? title ?? 'Panel'}
+        // Focus target of last resort (no focusable children) — outline
+        // suppressed; the ✕ button is normally focused first.
+        tabIndex={-1}
+        className={cn(
+          // `overflow-hidden` on the panel + `overflow-y-auto` on the inner
+          // body means the title row stays pinned at the top while long
+          // content scrolls inside the drawer.
+          // `h-[100dvh]` (not `h-full`) so the panel tracks the DYNAMIC
+          // viewport: when the mobile keyboard opens, the root viewport's
+          // `interactiveWidget: 'resizes-content'` shrinks the layout
+          // viewport and the panel shrinks with it — keeping any
+          // bottom-pinned content (e.g. a chat composer) just above the
+          // keyboard. Form drawers are unaffected (their body still scrolls
+          // under the same fixed height).
+          'relative z-50 flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background shadow-xl outline-none',
+          side === 'right' ? 'ml-auto' : 'mr-auto'
+        )}
+      >
+        {/* A single, consistent close affordance on EVERY drawer — a clear ✕
+            icon, pinned top-right, so users never hunt for a close (and it's
+            unambiguous vs. content actions like "Cancel booking"). */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={closeLabel}
+          title={closeLabel}
+          className="absolute right-4 top-4 z-10 inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X aria-hidden className="size-5" />
+        </button>
+        {/* Default drawers scroll their whole body (`overflow-y-auto`). A
+            `fill` drawer instead becomes a non-scrolling full-height flex
+            COLUMN so its content can own the scroll internally. The
+            `min-h-0 flex-1` chain is forwarded to ShellBase so the column
+            actually reaches the panel's full height. */}
+        <div className={cn(
+          'p-6 pr-14',
+          fill ? 'flex min-h-0 flex-1 flex-col' : 'flex-1 overflow-y-auto overscroll-contain',
+        )}>
+          <ShellBase title={title} {...props} className={fill ? 'flex min-h-0 flex-1 flex-col' : undefined}>
+            {children}
+          </ShellBase>
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { insertTestOtp } from '../helpers/test-api'
-import { setAuthEmailCookie, setSessionCookie } from '../helpers/cookies'
+import { setAuthIdentifierCookie, setSessionCookie } from '../helpers/cookies'
 import { completeIdentifyStep, completeRegisterStep, completeVerifyStep } from '../helpers/auth'
 
 let sessionToken = ''
@@ -17,7 +17,7 @@ test.beforeAll(async ({ browser, request }) => {
   await page.goto('/auth/identify')
   await page.waitForLoadState('networkidle')
   await page.waitForTimeout(1100)
-  await page.fill('input[name="email"]', email)
+  await page.fill('input[name="identifier"]', email)
   await page.click('button[type="submit"]')
   await page.waitForURL('**/auth/register', { timeout: 10_000 })
 
@@ -50,11 +50,11 @@ test('direct /auth/register (no cookies) → redirect to /auth/identify', async 
   await expect(page).toHaveURL(/\/auth\/identify/, { timeout: 10_000 })
 })
 
-test('/auth/register with existing auth_email (not new) → redirect to /auth/verify', async ({
+test('/auth/register with existing auth_identifier (not new) → redirect to /auth/verify', async ({
   browser,
 }) => {
   const context = await browser.newContext()
-  await setAuthEmailCookie(context, existingEmail, false)
+  await setAuthIdentifierCookie(context, existingEmail, 'email', false)
   const page = await context.newPage()
 
   await page.goto('/auth/register')
@@ -79,7 +79,7 @@ test('/auth/verify with auth_is_new cookie → redirect to /auth/register', asyn
 }) => {
   const email = `playwright+${crypto.randomUUID()}@test.invalid`
   const context = await browser.newContext()
-  await setAuthEmailCookie(context, email, true)
+  await setAuthIdentifierCookie(context, email, 'email', true)
   const page = await context.newPage()
 
   await page.goto('/auth/verify')

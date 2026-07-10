@@ -5,12 +5,12 @@ export const sessions = pgTable('sessions', {
   id:                integer('id').primaryKey().generatedAlwaysAsIdentity(),
   userId:            integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   token:             text('token').notNull().unique(),
-  expiresAt:         timestamp('expires_at').notNull(),
+  expiresAt:         timestamp('expires_at', { withTimezone: true }).notNull(),
   userAgent:         text('user_agent'),
   ipAddress:         text('ip_address'),
   forceDeactivation: boolean('force_deactivation').notNull().default(false),
-  createdAt:         timestamp('created_at').defaultNow().notNull(),
-  lastActiveAt:      timestamp('last_active_at').defaultNow().notNull(),
+  createdAt:         timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  lastActiveAt:      timestamp('last_active_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export type Session = typeof sessions.$inferSelect

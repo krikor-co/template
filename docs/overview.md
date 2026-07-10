@@ -158,6 +158,14 @@ The Claude commands call the CLI internally, then fill in the TODOs with real co
 □ Navigates on success?       → route.exits.*() — never raw URL strings
 ```
 
+### Unit tests
+
+Vitest runs any co-located `*.test.ts` file (`npm test`, `npm run test:watch`).
+The suffixes are split so the two runners never collect each other's suites:
+`.test.ts` = vitest (unit, colocated next to the source file), `.spec.ts` =
+Playwright (e2e, under `e2e/`). Example: `db/schema/schema-invariants.test.ts`
+guards the schema conventions from [Schema](schema).
+
 ---
 
 ## Reading order
@@ -174,6 +182,15 @@ If you're new to the framework, read in this order:
 8. **[Guards](guards)** — layout guards and transition guards
 9. **[Declarative Flows](declarative-flows)** — the design principle behind everything
 10. **[Commands](commands)** — CLI and Claude Code scaffolding commands
+
+Once the core clicks, reach for these by area:
+
+- **Design & interface** — [Design Tokens](design-tokens) · [i18n](i18n) · [Storybook](storybook)
+- **Navigation flow** — [Links](links) · [Flow Params](flow-params)
+- **Multi-tenant platform** — [Tenancy](tenancy) · [Feature Flags](feature-flags) · [Rate Limiting](rate-limiting)
+- **Data & schema** — [Schema](schema)
+- **Integrations** — [Capabilities](capabilities) · [Billing](billing) · [Blob](blob) · [Realtime](realtime) · [Cron](cron)
+- **Process** — [Planning](planning)
 
 ---
 

@@ -52,15 +52,15 @@ class SceneErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="space-y-2 p-4 text-center">
-          <p className="text-sm text-destructive">Something went wrong.</p>
+        <div className="space-y-3 rounded-lg bg-destructive-soft p-6 text-center">
+          <p className="text-sm font-medium text-destructive-deep">Something went wrong.</p>
           {this.props.onRefresh && (
             <button
               onClick={() => {
                 this.setState({ hasError: false })
                 this.props.onRefresh?.()
               }}
-              className="text-sm underline"
+              className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
               Try again
             </button>

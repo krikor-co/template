@@ -2,19 +2,27 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { resendOtpAction } from './actions'
+import type { IdentifierType } from '@/lib/auth/identifier'
 
 type ResendStatus = 'waiting' | 'ready' | 'sending' | 'sent' | 'error'
 
-export function useResendOtp(email: string, cooldownSeconds = 30) {
+export function useResendOtp(identifier: string, identifierType: IdentifierType, cooldownSeconds = 30) {
   const [status, setStatus] = useState<ResendStatus>('waiting')
   const [secondsLeft, setSecondsLeft] = useState(cooldownSeconds)
   const [error, setError] = useState<string | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
+  const sentTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  // The post-"sent" reset fires 2s later; clear it on unmount so a user who
+  // verifies and navigates away inside that window doesn't trigger a
+  // setState on an unmounted component (React warning + leaked timer).
+  useEffect(() => () => clearTimeout(sentTimeoutRef.current), [])
 
   // Countdown timer — decrements secondsLeft every second
   useEffect(() => {
     if (status !== 'waiting') return
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot countdown reset on (re)entering 'waiting'; functional update runs once per status change and cannot cascade
     setSecondsLeft((prev) => (prev <= 0 ? cooldownSeconds : prev))
 
     intervalRef.current = setInterval(() => {
@@ -33,6 +41,7 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
   // Transition to 'ready' when countdown reaches 0
   useEffect(() => {
     if (status === 'waiting' && secondsLeft === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- terminal 'waiting'→'ready' transition when the countdown hits 0; the guard makes it run exactly once and it cannot cascade
       setStatus('ready')
     }
   }, [status, secondsLeft])
@@ -40,10 +49,10 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
   const resend = useCallback(async () => {
     setStatus('sending')
     setError(null)
-    const result = await resendOtpAction(email)
+    const result = await resendOtpAction(identifier, identifierType)
     if (result.success) {
       setStatus('sent')
-      setTimeout(() => {
+      sentTimeoutRef.current = setTimeout(() => {
         setSecondsLeft(cooldownSeconds)
         setStatus('waiting')
       }, 2000)
@@ -51,7 +60,7 @@ export function useResendOtp(email: string, cooldownSeconds = 30) {
       setError(result.error)
       setStatus('error')
     }
-  }, [email, cooldownSeconds])
+  }, [identifier, identifierType, cooldownSeconds])
 
   return { status, secondsLeft, error, resend }
 }
