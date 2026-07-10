@@ -11,33 +11,39 @@ Primitives     raw UI atoms: Button, Input, Badge
 
 Every non-primitive component is a section. Every section has an exhaustive state type. Every state renders through a `switch`. No exceptions.
 
+It ships batteries included: a typed Effect server boundary, email + phone OTP auth, multi-tenant workspaces, i18n, a design-token system, and pre-wired integrations (Stripe, Vercel Blob, realtime, cron) — all following the same conventions, all documented, all deletable if you don't need them.
+
 **Demo**: https://template-krikor.vercel.app/ | **Docs**: https://template-krikor.vercel.app/docs
 
 ## Stack
 
-Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS · Drizzle ORM · PostgreSQL · Zod · Storybook · Playwright
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS · Effect · Drizzle ORM · PostgreSQL · Zod · Storybook · Vitest · Playwright
 
 ## Setup
 
 ```bash
 npm install
-cp .env.example .env.local    # configure DATABASE_URL, RESEND_API_KEY
-npm run db:push               # apply schema to database
+cp .env.example .env.local    # configure DATABASE_URL, AUTH_SECRET, RESEND_API_KEY
+npm run db:push               # apply schema to a dev database
 npm run dev                   # http://localhost:3000
 ```
+
+Deploys apply migrations automatically: `npm run build` runs `scripts/migrate.mjs` (a forward-only, idempotent runner over `drizzle/*.sql`) before `next build`. `.env.example` documents every variable, including the feature-gated ones (`TWILIO_*`, `STRIPE_*`, `BLOB_*`, `CRON_SECRET`) — a subsystem stays dormant until its env is present.
 
 ## Scripts
 
 | Command | What it does |
 |---------|-------------|
 | `npm run dev` | Start dev server with Turbopack |
-| `npm run build` | Production build |
+| `npm run build` | Run migrations, then production build |
+| `npm run test` | Vitest unit tests (`*.test.ts`) |
+| `npm run test:e2e` | Playwright end-to-end tests (`*.spec.ts`) |
 | `npm run lint` | ESLint |
 | `npm run storybook` | Storybook on port 6006 |
-| `npm run test:e2e` | Playwright end-to-end tests |
-| `npm run db:push` | Push schema to database |
+| `npm run db:push` | Push schema to a dev database |
 | `npm run db:studio` | Drizzle Studio (database GUI) |
-| `npm run db:generate` | Generate migration files |
+| `npm run db:generate` | Regenerate the baseline migration |
+| `npm run seed:demo` | Seed idempotent demo data (`@demo.invalid`) |
 | `npm run flow` | CLI scaffolding tool |
 
 ## Scaffolding
@@ -68,30 +74,43 @@ Claude commands call the CLI for boilerplate, then fill in domain logic.
 ## Project structure
 
 ```
+middleware.ts                 host → tenant resolution (subdomains, custom domains)
 app/
-  auth/                     authentication flow (identify, verify, register)
-  dashboard/                authenticated area
-  docs/                     browsable documentation site
-components/ui/              primitives (Button, Input, Label, etc.)
-db/
-  schema/                   Drizzle schema definitions
-  drizzle.ts                database connection
+  auth/                       email + phone OTP flow (identify, verify, register)
+  dashboard/                  post-login workspace dispatcher (0 / 1 / N memberships)
+  onboarding/                 first-workspace setup
+  workspace/[workspaceId]/    the tenant-scoped app (billing gate lives here)
+  invite/[token]/             magic-link invite accept
+  admin/                      platform-admin surface
+  api/                        stripe webhook, blob proxy, cron, realtime SSE
+  docs/                       browsable documentation site
+components/ui/                primitives + catalog (forms, charts, DatePicker, Toast, …)
+db/schema/                    Drizzle schema (users, workspaces, feature_flag, trace_span, …)
 lib/
-  auth/                     session, JWT
-  hooks/                    useFormValues, useRedirectOnSuccess
-  otp/                      email OTP creation and verification
-  shell/                    Shell components (FullPage, Card, Modal, Drawer)
-  cache-registry.ts         typed hierarchical cache tags
-  route-registry.ts         typed URL navigation
-  scene.ts                  createScene — state machine hook factory
-  rate-limit.ts             database-backed rate limiting
-  transition.ts             transition guards for layout redirects
-tools/cli/                  scaffolding generators
-docs/                       markdown documentation (rendered at /docs)
-e2e/                        Playwright tests
+  effect/                     server boundary — runAction / runQuery / typed errors / tracing
+  auth/                       session, JWT, identifier (email-or-phone)
+  i18n/                       locale resolution, typed messages, formatters, timezones
+  tenant/                     pluggable host resolver
+  workspace/  invite/         membership queries, invite roles + email
+  features/                   feature-flag registry + 3-scope resolution
+  stripe/  blob/  realtime/  cron/   integrations (all feature-gated)
+  capabilities/  ai/          capability registry + AI surfaces
+  theme/                      ThemeProvider (next-themes)
+  shell/                      Shell components (FullPage, Card, Modal, Drawer)
+  hooks/  list/  export/  time/      utilities (scroll-lock, filtering, CSV, zoned time)
+  cache-registry.ts           typed hierarchical cache tags + cache-life profiles
+  route-registry.ts           typed URL navigation
+  scene.ts                    createScene — state machine hook factory
+  rate-limit.ts               database-backed rate limiting
+scripts/                      migrate.mjs, seed-demo.mjs, qa/, playwright/
+tools/cli/                    scaffolding generators
+docs/                         markdown documentation (rendered at /docs)
+e2e/                          Playwright tests
 ```
 
 ## Key patterns
+
+**Server boundary**: Every server action wraps its body in `runAction(pipe(...))` and every cached query in `runQuery(...)` — one tagged error union (`Forbidden | NotFound | ValidationFailed | …`), a default timeout, automatic OpenTelemetry spans, and `mapResult()` collapsing the per-action error switch at the edge. Pure `pipe` + `Effect.Do`, never `Effect.gen`. See [Data Flow](docs/data-flow.md).
 
 **State machines**: Every section's state is a discriminated union on `status`. The component body is `switch (state.status)`. Transitions are pure functions `(state, event) => state`.
 
@@ -99,28 +118,56 @@ e2e/                        Playwright tests
 
 **Navigation**: Every URL has `entry.ts` (build + parse) and `contract.ts` (exits). No raw URL strings anywhere. Actions return domain data — sections map results to routes.
 
-**Caching**: `tagWith()` inside `'use cache'` scopes. `invalidate()` for immediate freshness. `softInvalidate()` for eventual. Tags are hierarchical.
+**Caching**: `tagWith()` inside `'use cache'` scopes. `invalidate()` for immediate freshness, `softInvalidate()` for eventual. Tags are hierarchical; `withCacheProfile()` sets time-based revalidation.
+
+**Guards**: Gated layouts are sync Suspense shells — the async guard runs inside the boundary and redirects from there, so uncached I/O never blocks navigation.
 
 ## Documentation
 
-The `docs/` directory contains markdown files that are rendered as a browsable documentation site at `/docs`. This documentation ships with the template and is designed to grow with your application — update it as you add domain-specific patterns, conventions, or architectural decisions unique to your project.
+The `docs/` directory is a browsable site at `/docs` that ships with the template and grows with your app. Run `npm run dev` and visit [localhost:3000/docs](http://localhost:3000/docs), or read the markdown directly:
 
-Run `npm run dev` and visit [localhost:3000/docs](http://localhost:3000/docs), or read the markdown files directly:
+**Framework**
 
 | Doc | Topic |
 |-----|-------|
 | [Overview](docs/overview.md) | What this is, how to get started |
-| [Commands](docs/commands.md) | CLI and Claude Code scaffolding |
-| [Pages](docs/pages.md) | Page layer and hierarchy |
+| [Pages](docs/pages.md) | Page layer, hierarchy, `?page=`/`?q=` list contract |
 | [Routing](docs/routing.md) | RouteRegistry, entries, exits |
 | [Shells](docs/shells.md) | Shell types and implementation |
 | [Sections](docs/sections.md) | Six section types and file map |
-| [Caching](docs/caching.md) | Cache tags and invalidation |
-| [Forms](docs/forms.md) | useFormValues, validation, persistence |
-| [Guards](docs/guards.md) | Layout and transition guards |
-| [Data Flow](docs/data-flow.md) | Load, mutation, client-fetch patterns |
-| [Declarative Flows](docs/declarative-flows.md) | Action-first design principle |
-| [Schema](docs/schema.md) | Entity-first database modeling |
-| [Rate Limiting](docs/rate-limiting.md) | Database-backed rate limiter |
-| [Storybook](docs/storybook.md) | Story patterns and shell decorator |
+| [Guards](docs/guards.md) | Suspense guard shells, gate topology |
+| [Links](docs/links.md) | Link primitives decision tree |
+| [Flow Params](docs/flow-params.md) | `?from=` origin-tracking lifecycle |
+| [Commands](docs/commands.md) | CLI and Claude Code scaffolding |
 | [Planning](docs/planning.md) | Design-flow specs and feature planning |
+
+**Data & state**
+
+| Doc | Topic |
+|-----|-------|
+| [Data Flow](docs/data-flow.md) | Load / mutation / client-fetch + the Effect boundary |
+| [Declarative Flows](docs/declarative-flows.md) | Action-first design principle |
+| [Forms](docs/forms.md) | useFormValues, validation, persistence |
+| [Caching](docs/caching.md) | Cache tags, invalidation, cache-life profiles |
+| [Schema](docs/schema.md) | Entity-first modeling, timestamptz, partial uniques |
+| [Rate Limiting](docs/rate-limiting.md) | Database-backed rate limiter |
+
+**Platform & integrations**
+
+| Doc | Topic |
+|-----|-------|
+| [Tenancy](docs/tenancy.md) | Workspaces, members, host resolution |
+| [Feature Flags](docs/feature-flags.md) | Pure registry + 3-scope resolution |
+| [i18n](docs/i18n.md) | Locale chain, typed messages, formatters, timezones |
+| [Billing](docs/billing.md) | Stripe subscriptions and the workspace paywall |
+| [Blob](docs/blob.md) | Validated uploads + SSRF-guarded serving |
+| [Realtime](docs/realtime.md) | Per-tenant pulse + SSE nudge |
+| [Cron](docs/cron.md) | Background-job convention and per-tenant fan-out |
+| [Capabilities](docs/capabilities.md) | One operation, one definition; AI tools from it |
+
+**Design & tooling**
+
+| Doc | Topic |
+|-----|-------|
+| [Design Tokens](docs/design-tokens.md) | Accent triads, tone scale, palette swap |
+| [Storybook](docs/storybook.md) | Story patterns and shell decorator |
